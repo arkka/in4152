@@ -43,7 +43,7 @@ enum DisplayModeType {TRIANGLE=1, FACE=2, CUBE=3, ARM=4, MESH=5,};
 DisplayModeType DisplayMode = TRIANGLE;
 
 unsigned int W_fen = 800;  // screen width
-unsigned int H_fen = 800;  // screen height
+unsigned int H_fen = 600;  // screen height
 
 float LightPos[4] = {1,1,0.4,1};
 std::vector<float> MeshVertices;
@@ -461,7 +461,7 @@ void keyboard(unsigned char key, int x, int y)
 
 void displayInternal(void);
 void reshape(int w, int h);
-//bool loadMesh(const char * filename);
+bool loadMesh(const char * filename);
 void init()
 {
     glDisable( GL_LIGHTING );
@@ -485,7 +485,7 @@ void init()
     glPolygonMode(GL_BACK, GL_FILL);
     //glPolygonMode(GL_BACK, GL_LINE);
     glShadeModel(GL_SMOOTH);
-    //loadMesh("David.obj");
+    loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
 }
 
 
@@ -533,137 +533,137 @@ void centerAndScaleToUnit (std::vector<float> & vertices)
     }
 }
 
-//bool loadMesh(const char * filename)
-//{
-//    const unsigned int LINE_LEN=256;
-//    char s[LINE_LEN];
-//    FILE * in;
-//#ifdef WIN32
-//    errno_t error=fopen_s(&in, filename,"r");
-//    if (error!=0)
-//#else
-//        in = fopen(filename,"r");
-//    if (!(in))
-//#endif
-//        return false;
-//    
-//    //temp stuff
-//    float x, y, z;
-//    std::vector<int> vhandles;
-//    
-//    
-//    
-//    while(in && !feof(in) && fgets(s, LINE_LEN, in))
-//    {
-//        // vertex
-//        if (strncmp(s, "v ", 2) == 0)
-//        {
-//            if (sscanf_s(s, "v %f %f %f", &x, &y, &z))
-//                MeshVertices.push_back(x);
-//            MeshVertices.push_back(y);
-//            MeshVertices.push_back(z);
-//        }
-//        // face
-//        else if (strncmp(s, "f ", 2) == 0)
-//        {
-//            int component(0), nV(0);
-//            bool endOfVertex(false);
-//            char *p0, *p1(s+2); //place behind the "f "
-//            
-//            vhandles.clear();
-//            
-//            while (*p1 == ' ') ++p1; // skip white-spaces
-//            
-//            while (p1)
-//            {
-//                p0 = p1;
-//                
-//                // overwrite next separator
-//                
-//                // skip '/', '\n', ' ', '\0', '\r' <-- don't forget Windows
-//                while (*p1 != '/' && *p1 != '\r' && *p1 != '\n' &&
-//                       *p1 != ' ' && *p1 != '\0')
-//                    ++p1;
-//                
-//                // detect end of vertex
-//                if (*p1 != '/') endOfVertex = true;
-//                
-//                // replace separator by '\0'
-//                if (*p1 != '\0')
-//                {
-//                    *p1 = '\0';
-//                    p1++; // point to next token
-//                }
-//                
-//                // detect end of line and break
-//                if (*p1 == '\0' || *p1 == '\n')
-//                    p1 = 0;
-//                
-//                
-//                // read next vertex component
-//                if (*p0 != '\0')
-//                {
-//                    switch (component)
-//                    {
-//                        case 0: // vertex
-//                            vhandles.push_back(atoi(p0)-1);
-//                            break;
-//                            
-//                        case 1: // texture coord
-//                            //assert(!vhandles.empty());
-//                            //assert((unsigned int)(atoi(p0)-1) < texcoords.size());
-//                            //_bi.set_texcoord(vhandles.back(), texcoords[atoi(p0)-1]);
-//                            break;
-//                            
-//                        case 2: // normal
-//                            //assert(!vhandles.empty());
-//                            //assert((unsigned int)(atoi(p0)-1) < normals.size());
-//                            //_bi.set_normal(vhandles.back(), normals[atoi(p0)-1]);
-//                            break;
-//                    }
-//                }
-//                
-//                ++component;
-//                
-//                if (endOfVertex)
-//                {
-//                    component = 0;
-//                    nV++;
-//                    endOfVertex = false;
-//                }
-//            }
-//            
-//            
-//            if (vhandles.size()>3)
-//            {
-//                //model is not triangulated, so let us do this on the fly...
-//                //to have a more uniform mesh, we add randomization
-//                unsigned int k=(false)?(rand()%vhandles.size()):0;
-//                for (unsigned int i=0;i<vhandles.size()-2;++i)
-//                {
-//                    MeshTriangles.push_back(vhandles[(k+0)%vhandles.size()]);
-//                    MeshTriangles.push_back(vhandles[(k+i+1)%vhandles.size()]);
-//                    MeshTriangles.push_back(vhandles[(k+i+2)%vhandles.size()]);
-//                }
-//            }
-//            else if (vhandles.size()==3)
-//            {
-//                MeshTriangles.push_back(vhandles[0]);
-//                MeshTriangles.push_back(vhandles[1]);
-//                MeshTriangles.push_back(vhandles[2]);
-//            }
-//            else
-//            {
-//                std::cout<<"TriMesh::LOAD: Unexpected number of face vertices (<3). Ignoring face \n";
-//            }
-//        }
-//        memset(&s, 0, LINE_LEN);
-//    }
-//    cout << MeshTriangles.size();
-//    fclose(in);
-//    centerAndScaleToUnit (MeshVertices);
-//    return true;
-//}
+bool loadMesh(const char * filename)
+{
+    const unsigned int LINE_LEN=256;
+    char s[LINE_LEN];
+    FILE * in;
+#ifdef WIN32
+    errno_t error=fopen_s(&in, filename,"r");
+    if (error!=0)
+#else
+        in = fopen(filename,"r");
+    if (!(in))
+#endif
+        return false;
+    
+    //temp stuff
+    float x, y, z;
+    std::vector<int> vhandles;
+    
+    
+    
+    while(in && !feof(in) && fgets(s, LINE_LEN, in))
+    {
+        // vertex
+        if (strncmp(s, "v ", 2) == 0)
+        {
+            if (sscanf(s, "v %f %f %f", &x, &y, &z))
+                MeshVertices.push_back(x);
+            MeshVertices.push_back(y);
+            MeshVertices.push_back(z);
+        }
+        // face
+        else if (strncmp(s, "f ", 2) == 0)
+        {
+            int component(0), nV(0);
+            bool endOfVertex(false);
+            char *p0, *p1(s+2); //place behind the "f "
+            
+            vhandles.clear();
+            
+            while (*p1 == ' ') ++p1; // skip white-spaces
+            
+            while (p1)
+            {
+                p0 = p1;
+                
+                // overwrite next separator
+                
+                // skip '/', '\n', ' ', '\0', '\r' <-- don't forget Windows
+                while (*p1 != '/' && *p1 != '\r' && *p1 != '\n' &&
+                       *p1 != ' ' && *p1 != '\0')
+                    ++p1;
+                
+                // detect end of vertex
+                if (*p1 != '/') endOfVertex = true;
+                
+                // replace separator by '\0'
+                if (*p1 != '\0')
+                {
+                    *p1 = '\0';
+                    p1++; // point to next token
+                }
+                
+                // detect end of line and break
+                if (*p1 == '\0' || *p1 == '\n')
+                    p1 = 0;
+                
+                
+                // read next vertex component
+                if (*p0 != '\0')
+                {
+                    switch (component)
+                    {
+                        case 0: // vertex
+                            vhandles.push_back(atoi(p0)-1);
+                            break;
+                            
+                        case 1: // texture coord
+                            //assert(!vhandles.empty());
+                            //assert((unsigned int)(atoi(p0)-1) < texcoords.size());
+                            //_bi.set_texcoord(vhandles.back(), texcoords[atoi(p0)-1]);
+                            break;
+                            
+                        case 2: // normal
+                            //assert(!vhandles.empty());
+                            //assert((unsigned int)(atoi(p0)-1) < normals.size());
+                            //_bi.set_normal(vhandles.back(), normals[atoi(p0)-1]);
+                            break;
+                    }
+                }
+                
+                ++component;
+                
+                if (endOfVertex)
+                {
+                    component = 0;
+                    nV++;
+                    endOfVertex = false;
+                }
+            }
+            
+            
+            if (vhandles.size()>3)
+            {
+                //model is not triangulated, so let us do this on the fly...
+                //to have a more uniform mesh, we add randomization
+                unsigned int k=(false)?(rand()%vhandles.size()):0;
+                for (unsigned int i=0;i<vhandles.size()-2;++i)
+                {
+                    MeshTriangles.push_back(vhandles[(k+0)%vhandles.size()]);
+                    MeshTriangles.push_back(vhandles[(k+i+1)%vhandles.size()]);
+                    MeshTriangles.push_back(vhandles[(k+i+2)%vhandles.size()]);
+                }
+            }
+            else if (vhandles.size()==3)
+            {
+                MeshTriangles.push_back(vhandles[0]);
+                MeshTriangles.push_back(vhandles[1]);
+                MeshTriangles.push_back(vhandles[2]);
+            }
+            else
+            {
+                std::cout<<"TriMesh::LOAD: Unexpected number of face vertices (<3). Ignoring face \n";
+            }
+        }
+        memset(&s, 0, LINE_LEN);
+    }
+    cout << MeshTriangles.size();
+    fclose(in);
+    centerAndScaleToUnit (MeshVertices);
+    return true;
+}
 
 
 

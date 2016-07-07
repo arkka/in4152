@@ -29,8 +29,27 @@
 #include <string.h>
 #include <vector>
 
+/**
+ * Data Model
+ */
 
-//START READING HERE!!!
+struct Player {
+    float x, y, z;
+    float angle;
+};
+
+struct Bullet {
+    int type; // 0 fromplayer, 1 from enemy
+    float originX, originY, originZ;
+    float x, y, z;
+    float angle;
+};
+
+/**
+ * Initiate Unit Data
+ */
+ 
+Player player;
 
 
 //////Predefined global variables
@@ -42,8 +61,9 @@ enum DisplayModeType {TRIANGLE=1, FACE=2, CUBE=3, ARM=4, MESH=5,};
 
 DisplayModeType DisplayMode = TRIANGLE;
 
-unsigned int W_fen = 800;  // screen width
-unsigned int H_fen = 600;  // screen height
+unsigned int screenWidth = 800;  // screen width
+unsigned int screenHeight = 600;  // screen height
+
 
 float LightPos[4] = {1,1,0.4,1};
 std::vector<float> MeshVertices;
@@ -57,6 +77,13 @@ int l = 1;
 float pos = 0.1;
 float x1l, x2l, y1l, y2l, z1l, z2l;
 
+
+GLint viewport[4]; //var to hold the viewport info
+GLdouble modelview[16]; //var to hold the modelview info
+GLdouble projection[16]; //var to hold the projection matrix info
+GLfloat winX, winY; //variables to hold screen x,y,z coordinates
+GLfloat winZ = -5; // Default win Z coord
+GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 
 ////////// Draw Functions
 
@@ -103,6 +130,7 @@ void drawTriangle()
     //5) go to the function animate and increment this variable
     //by a small value - observe the animation.
     
+    glTranslated(player.x, player.y, 0);
     glColor3f(1,0,0);
     glNormal3f(0,0,-1);
     glBegin(GL_TRIANGLES);
@@ -365,8 +393,53 @@ void animate( )
     //tri_x = tri_x + inc;
 }
 
+/**
+ * Mouse
+ */
 
-//take keyboard input into account
+void mouseClick( int button, int state, int x, int y )
+{
+    if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN )
+    {
+        //printf("mouse click pressed at %d,%d\n",x,y);
+        
+        
+        
+    }
+    
+    
+}
+
+void mouseMotion( int x, int y )
+{
+    // Limit motion to screen size
+    
+    
+    if((y<=screenHeight && y>=0)&&(x<=screenWidth && x>=0)){
+        //printf("mouse moved at %d,%d\n",x,y);
+        
+        glGetDoublev( GL_MODELVIEW_MATRIX, modelview ); //get the modelview info
+        glGetDoublev( GL_PROJECTION_MATRIX, projection ); //get the projection matrix info
+        glGetIntegerv( GL_VIEWPORT, viewport ); //get the viewport info
+        
+        winX = (float)x;
+        winY = (float)viewport[3] - (float)y;
+        
+        //get the world coordinates from the screen coordinates
+        glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
+        gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
+        
+        printf("window cord at %f,%f\n",winX,winY);
+        printf("world cord at %f,%f\n",worldX,worldY);
+        
+    }
+    
+}
+
+/**
+ * Keyboard
+ */
+
 void keyboard(unsigned char key, int x, int y)
 {
     printf("key %d pressed at %d,%d\n",key,x,y);
@@ -464,6 +537,8 @@ void reshape(int w, int h);
 bool loadMesh(const char * filename);
 void init()
 {
+    // SCENE
+    
     glDisable( GL_LIGHTING );
     glEnable( GL_LIGHT0 );
     glEnable(GL_COLOR_MATERIAL);
@@ -485,7 +560,16 @@ void init()
     glPolygonMode(GL_BACK, GL_FILL);
     //glPolygonMode(GL_BACK, GL_LINE);
     glShadeModel(GL_SMOOTH);
+    
+    // MESHES
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
+    
+    // UNIT
+    player.x = 0;
+    player.y = 0;
+    player.z = 0;
+    
+
 }
 
 
@@ -667,7 +751,6 @@ bool loadMesh(const char * filename)
 
 
 
-
 /**
  * Programme principal
  */
@@ -680,7 +763,7 @@ int main(int argc, char** argv)
     
     // position et taille de la fenetre
     glutInitWindowPosition(200, 100);
-    glutInitWindowSize(W_fen,H_fen);
+    glutInitWindowSize(screenWidth,screenHeight);
     glutCreateWindow(argv[0]);
     
     init( );
@@ -688,7 +771,7 @@ int main(int argc, char** argv)
     // Initialize viewpoint
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(0,0,-4);
+    glTranslatef(0,0,winZ);
     tbInitTransform();     
     tbHelp();
     
@@ -698,8 +781,8 @@ int main(int argc, char** argv)
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutDisplayFunc(displayInternal);
-    glutMouseFunc(tbMouseFunc);    // traqueboule utilise la souris
-    glutMotionFunc(tbMotionFunc);  // traqueboule utilise la souris
+    glutMouseFunc(mouseClick);    // traqueboule utilise la souris
+    glutPassiveMotionFunc(mouseMotion);  // traqueboule utilise la souris
     glutIdleFunc(animate);
     
     // lancement de la boucle principale

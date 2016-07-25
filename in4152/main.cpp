@@ -35,6 +35,7 @@
 
 struct Player {
     float x, y, z;
+    float mx, my; // mouse location relative to player location x,y
     float angle;
 };
 
@@ -113,6 +114,16 @@ void drawCoordSystem(float length=1)
     
     //reset to previous state
     glPopAttrib();
+}
+
+void drawPlayer()
+{
+    glPushMatrix();
+    glTranslated(player.x, player.y, 0);
+    drawCoordSystem();
+    glRotatef(player.angle, 0, 0, 1);
+    glutSolidTeapot(.5);
+    glPopMatrix();
 }
 
 /**
@@ -355,6 +366,9 @@ void display( )
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
     drawLight();
     
+    drawCoordSystem();
+    drawPlayer();
+    /*
     switch( DisplayMode )
     {
         case TRIANGLE:
@@ -382,6 +396,7 @@ void display( )
             
             break;
     }
+     */
 }
 
 
@@ -416,23 +431,36 @@ void mouseMotion( int x, int y )
     
     
     if((y<=screenHeight && y>=0)&&(x<=screenWidth && x>=0)){
-        //printf("mouse moved at %d,%d\n",x,y);
         
-        glGetDoublev( GL_MODELVIEW_MATRIX, modelview ); //get the modelview info
-        glGetDoublev( GL_PROJECTION_MATRIX, projection ); //get the projection matrix info
-        glGetIntegerv( GL_VIEWPORT, viewport ); //get the viewport info
+        //printf("cord at %d,%d\n",x,y);
+        
+        GLint viewport[4];
+        GLdouble modelview[16];
+        GLdouble projection[16];
+        GLfloat winX, winY, winZ;
+        GLdouble posX, posY, posZ;
+        
+        glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+        glGetDoublev( GL_PROJECTION_MATRIX, projection );
+        glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
+
         
         winX = (float)x;
         winY = (float)viewport[3] - (float)y;
-        
-        //get the world coordinates from the screen coordinates
         glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
+        
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
         
-        printf("window cord at %f,%f\n",winX,winY);
-        printf("world cord at %f,%f\n",worldX,worldY);
+        //printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
+        
+        // Hitung angle relatif dari player
+        printf("range %f,%f\n", worldY - player.y,worldX - player.x);
+        player.angle = (atan2(worldY - player.y,worldX - player.x) * 180 / M_PI);
+        printf("angle player: %f\n",player.angle);
         
     }
+    
+    
     
 }
 
@@ -564,8 +592,8 @@ void init()
     // MESHES
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
     
-    // UNIT
-    player.x = 0;
+    // Initialize player
+    player.x = -2;
     player.y = 0;
     player.z = 0;
     

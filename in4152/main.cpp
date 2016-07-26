@@ -39,6 +39,7 @@ struct Player {
     float angle;
     
     //movement
+    float moveX, moveY;
     float sx, sy;
     float acceleration;
 };
@@ -93,7 +94,7 @@ GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 
-float easingAmount = 0.01;
+float easingAmount = 0.05;
 bool isLeftKeyPressed = false;
 bool isRightKeyPressed = false;
 bool isDownKeyPressed = false;
@@ -137,7 +138,8 @@ void drawPlayer()
     if((player.x >= worldLimitX && player.sx > 0)||(player.x <= -worldLimitX && player.sx < 0)) player.sx = 0;
     if((player.y >= worldLimitY && player.sy > 0)||(player.y <= -worldLimitY && player.sy < 0)) player.sy = 0;
     
-    // Movement easing
+    // Movement easing v1
+    /*
     if(!isRightKeyPressed && player.sx > 0) {
         player.sx = player.sx - player.acceleration / 10;
         if(player.sx < 0) player.sx = 0;
@@ -157,11 +159,35 @@ void drawPlayer()
         player.sy = player.sy + player.acceleration / 10;
         if(player.sy > 0) player.sy = 0;
     } else player.y = player.y + player.sy;
+     */
+    
+    // Movement easing v2
+    
+    float fromX, toX, fromY, toY;
+    
+    fromX = player.x;
+    toX = player.moveX;
+    
+    fromY = player.y;
+    toY = player.moveY;
+    
+    float distanceX = toX - fromX;
+    float distanceY = toY - fromY;
+    float distance = sqrt(distanceX * distanceX + distanceY * distanceY);
+    if (distance > 0) {
+        fromX += distanceX * easingAmount;
+        fromY += distanceY * easingAmount;
+    }
+    
+    player.x = fromX;
+    player.y = fromY;
 
     glPushMatrix();
     glTranslated(player.x, player.y, 0);
     drawCoordSystem();
+    
     glRotatef(player.angle, 0, 0, 1);
+
     glutSolidTeapot(.5);
     glPopMatrix();
 }
@@ -619,27 +645,26 @@ void keyboardSpecial(int key, int x, int y) {
         case GLUT_KEY_LEFT:
             isLeftKeyPressed = true;
             if (!isRightKeyPressed) {
-                if(player.sx > -0.2) player.sx -= player.acceleration;
+                player.moveX -= player.acceleration;
             }
             break;
         case GLUT_KEY_RIGHT:
             isRightKeyPressed = true;
             if (!isLeftKeyPressed) {
-                if(player.sx < 0.2) player.sx += player.acceleration;
+                player.moveX += player.acceleration;
             }
             break;
             
         case GLUT_KEY_DOWN:
             isDownKeyPressed = true;
             if (!isUpKeyPressed) {
-                if(player.sy > -0.2) player.sy -= player.acceleration;
-            }
+                player.moveY -= player.acceleration;            }
             break;
             
         case GLUT_KEY_UP:
             isUpKeyPressed = true;
             if (!isDownKeyPressed) {
-                if(player.sy < 0.2) player.sy += player.acceleration;
+                player.moveY += player.acceleration;
             }
             break;
             
@@ -727,7 +752,9 @@ void init()
     
     player.sx = 0.0;
     player.sy = 0.0;
-    player.acceleration = 0.02;
+    player.moveX = player.x;
+    player.moveY = player.y;
+    player.acceleration = 0.5;
 }
 
 

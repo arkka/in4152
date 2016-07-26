@@ -37,6 +37,10 @@ struct Player {
     float x, y, z;
     float mx, my; // mouse location relative to player location x,y
     float angle;
+    
+    //movement
+    float sx, sy;
+    float acceleration;
 };
 
 struct Bullet {
@@ -79,12 +83,21 @@ float pos = 0.1;
 float x1l, x2l, y1l, y2l, z1l, z2l;
 
 
+
 GLint viewport[4]; //var to hold the viewport info
 GLdouble modelview[16]; //var to hold the modelview info
 GLdouble projection[16]; //var to hold the projection matrix info
 GLfloat winX, winY; //variables to hold screen x,y,z coordinates
 GLfloat winZ = -5; // Default win Z coord
 GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
+GLdouble worldLimitX, worldLimitY, worldLimitZ;
+
+
+float easingAmount = 0.01;
+bool isLeftKeyPressed = false;
+bool isRightKeyPressed = false;
+bool isDownKeyPressed = false;
+bool isUpKeyPressed = false;
 
 ////////// Draw Functions
 
@@ -118,6 +131,33 @@ void drawCoordSystem(float length=1)
 
 void drawPlayer()
 {
+    //printf("cord: %f,%f\n",player.x,player.y);
+    
+    // Movement limit
+    if((player.x >= worldLimitX && player.sx > 0)||(player.x <= -worldLimitX && player.sx < 0)) player.sx = 0;
+    if((player.y >= worldLimitY && player.sy > 0)||(player.y <= -worldLimitY && player.sy < 0)) player.sy = 0;
+    
+    // Movement easing
+    if(!isRightKeyPressed && player.sx > 0) {
+        player.sx = player.sx - player.acceleration / 10;
+        if(player.sx < 0) player.sx = 0;
+    } else player.x = player.x + player.sx;
+    
+    if(!isLeftKeyPressed && player.sx<0) {
+        player.sx = player.sx + player.acceleration / 10;
+        if(player.sx > 0 ) player.sx = 0;
+    } else player.x = player.x + player.sx;
+    
+    if(!isUpKeyPressed && player.sy > 0) {
+        player.sy = player.sy - player.acceleration / 10;
+        if(player.sy < 0) player.sy = 0;
+    } else player.y = player.y + player.sy;
+    
+    if(!isDownKeyPressed && player.sy < 0) {
+        player.sy = player.sy + player.acceleration / 10;
+        if(player.sy > 0) player.sy = 0;
+    } else player.y = player.y + player.sy;
+
     glPushMatrix();
     glTranslated(player.x, player.y, 0);
     drawCoordSystem();
@@ -359,9 +399,28 @@ void drawMesh()
     }
 }
 
+/**
+ * Scene
+ */
+void computeWorldLimit(){
+    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+    glGetDoublev( GL_PROJECTION_MATRIX, projection );
+    glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
+    
+    // get world limit for object limit
+    gluUnProject( 0, 0, winZ, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
+    
+    // convert world limit to abs
+    worldLimitX = abs(worldLimitX)/2;
+    worldLimitY = abs(worldLimitY)/2;
+    //printf("world cord Limit at %f,%f,%f\n",worldLimitX,worldLimitY, worldLimitZ);
+}
 
 void display( )
 {
+    // Compute viewpoint limit on world cord
+    computeWorldLimit();
+    
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
     drawLight();
@@ -408,6 +467,7 @@ void animate( )
     //tri_x = tri_x + inc;
 }
 
+
 /**
  * Mouse
  */
@@ -434,12 +494,6 @@ void mouseMotion( int x, int y )
         
         //printf("cord at %d,%d\n",x,y);
         
-        GLint viewport[4];
-        GLdouble modelview[16];
-        GLdouble projection[16];
-        GLfloat winX, winY, winZ;
-        GLdouble posX, posY, posZ;
-        
         glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
         glGetDoublev( GL_PROJECTION_MATRIX, projection );
         glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
@@ -449,14 +503,34 @@ void mouseMotion( int x, int y )
         winY = (float)viewport[3] - (float)y;
         glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
         
+        // get world coord based on mouse
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
+        printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
-        //printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
         // Hitung angle relatif dari player
-        printf("range %f,%f\n", worldY - player.y,worldX - player.x);
-        player.angle = (atan2(worldY - player.y,worldX - player.x) * 180 / M_PI);
-        printf("angle player: %f\n",player.angle);
+        //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
+        float playerAngle = (atan2(worldY - player.y,worldX - player.x) * 180 / M_PI);
+        if(playerAngle) player.angle = playerAngle;
+        //printf("angle player: %f\n",player.angle);
+        
+        //Hitung lokasi player follow cursor
+//        float xDistance = worldX - player.x;
+//        float yDistance = worldY - player.y;
+//        float distance = sqrt(xDistance * xDistance + yDistance * yDistance);
+//        if (distance > 1) {
+//            player.x += xDistance * easingAmount;
+//            player.y += yDistance * easingAmount;
+//        }
+        
+//        float xDistance = worldX - player.x;
+//        float yDistance = worldY - player.y;
+//        
+//        if((xDistance != 0) && (yDistance != 0)) {
+//            player.x -=  (((player.x-0.1) - player.x) / player.speed);
+//            player.y -=  (((player.y-0.1) - player.y) / player.speed);
+//        }
+        
         
     }
     
@@ -470,7 +544,7 @@ void mouseMotion( int x, int y )
 
 void keyboard(unsigned char key, int x, int y)
 {
-    printf("key %d pressed at %d,%d\n",key,x,y);
+    //printf("key %d pressed at %d,%d\n",key,x,y);
     fflush(stdout);
     
     if ((key>='1')&&(key<='9'))
@@ -538,6 +612,60 @@ void keyboard(unsigned char key, int x, int y)
     }
 }
 
+void keyboardSpecial(int key, int x, int y) {
+    printf("key: %d\n",key);
+    
+    switch (key) {
+        case GLUT_KEY_LEFT:
+            isLeftKeyPressed = true;
+            if (!isRightKeyPressed) {
+                if(player.sx > -0.2) player.sx -= player.acceleration;
+            }
+            break;
+        case GLUT_KEY_RIGHT:
+            isRightKeyPressed = true;
+            if (!isLeftKeyPressed) {
+                if(player.sx < 0.2) player.sx += player.acceleration;
+            }
+            break;
+            
+        case GLUT_KEY_DOWN:
+            isDownKeyPressed = true;
+            if (!isUpKeyPressed) {
+                if(player.sy > -0.2) player.sy -= player.acceleration;
+            }
+            break;
+            
+        case GLUT_KEY_UP:
+            isUpKeyPressed = true;
+            if (!isDownKeyPressed) {
+                if(player.sy < 0.2) player.sy += player.acceleration;
+            }
+            break;
+            
+    }
+    
+    printf("speed: %f,%f\n", player.sx, player.sy);
+}
+
+void keyboardSpecialUp(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_LEFT:
+            isLeftKeyPressed = false;
+            break;
+        case GLUT_KEY_RIGHT:
+            isRightKeyPressed = false;
+            break;
+        case GLUT_KEY_UP:
+            isUpKeyPressed = false;
+            break;
+        case GLUT_KEY_DOWN:
+            isDownKeyPressed = false;
+            break;
+    }
+}
+
+
 
 //Nothing needed below this point
 //STOP READING //STOP READING //STOP READING
@@ -572,9 +700,9 @@ void init()
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_NORMALIZE);
     
-    //int MatSpec [4] = {1,1,1,1};
-    //glMaterialiv(GL_FRONT_AND_BACK,GL_SPECULAR,MatSpec);
-    //glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,10);
+//    int MatSpec [4] = {1,1,1,1};
+//    glMaterialiv(GL_FRONT_AND_BACK,GL_SPECULAR,MatSpec);
+//    glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,10);
     
     
     // Enable Depth test
@@ -597,7 +725,9 @@ void init()
     player.y = 0;
     player.z = 0;
     
-
+    player.sx = 0.0;
+    player.sy = 0.0;
+    player.acceleration = 0.02;
 }
 
 
@@ -803,11 +933,12 @@ int main(int argc, char** argv)
     tbInitTransform();     
     tbHelp();
     
-    
-    
+
     // cablage des callback
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(keyboardSpecial);
+    glutSpecialUpFunc(keyboardSpecialUp);
     glutDisplayFunc(displayInternal);
     glutMouseFunc(mouseClick);    // traqueboule utilise la souris
     glutPassiveMotionFunc(mouseMotion);  // traqueboule utilise la souris

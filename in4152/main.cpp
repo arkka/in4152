@@ -131,9 +131,10 @@ std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool bounda
 void updateMouseMovement() {
     // Limit motion to screen size
     if((player.mouse.y<=screenHeight && player.mouse.y>=0)&&(player.mouse.x<=screenWidth && player.mouse.x>=0)){
+  
+        printf("cord at %f,%f\n",player.mouse.x,player.mouse.y);
         
-        //printf("cord at %d,%d\n",x,y);
-        
+
         glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
         glGetDoublev( GL_PROJECTION_MATRIX, projection );
         glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
@@ -144,17 +145,63 @@ void updateMouseMovement() {
         
         // get world coord based on mouse
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
-        printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
+        //printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
         // Hitung angle relatif dari player
         //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
-        float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
-        if(playerAngle) player.angle = playerAngle;
+        
+        //float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
+        //if(playerAngle) player.angle = playerAngle;
+        
+        
+        // Debug mouse angle
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glDisable(GL_LIGHTING);
+        
+        // miring
+        glBegin(GL_LINES);
+        glColor3f(1,1,0);
+        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        glVertex3f(worldX,worldY,worldZ);
+        glEnd();
+        
+        
+        // y
+        glBegin(GL_LINES);
+        glColor3f(0,1,0);
+        glVertex3f(worldX,player.pos.y,player.pos.z);
+        glVertex3f(worldX,worldY,worldZ);
+        glEnd();
+        
+        // x
+        glBegin(GL_LINES);
+        glColor3f(1,0,0);
+        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        glVertex3f(worldX,player.pos.y,worldZ);
+        glEnd();
+        
+        
+        /*
+        
+        glBegin(GL_LINES);
+        glColor3f(1,1,0);
+        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        glVertex3f(0,0,0);
+        glEnd();
+        
+         */
+        
+        glPopAttrib();
+
         
     }
 }
 
 void updateWorldLimit(){
+    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+    glGetDoublev( GL_PROJECTION_MATRIX, projection );
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    
     // get world limit for object limit
     gluUnProject( 0, 0, 1, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
     
@@ -203,14 +250,29 @@ void drawPlayer()
     player.move = moveVec[1];
 
     
-    glPushMatrix();
+    
+    //glPushMatrix();
     glTranslated(player.pos.x, player.pos.y, 0);
     drawCoordSystem();
     
+    printf("%f\n", player.angle);
+    
+    //glRotatef(15, 1, -1, 0);
     glRotatef(player.angle, 0, 0, 1);
+    
+  
+//    if(player.angle >=0 && player.angle <= 90)  {
+//        glRotatef(player.angle, 0, 0, 1);
+//        glRotatef(player.angle, 1, 0, 0);
+//    }
+ 
+    
+    //if(player.angle >=45 && player.angle <= 135)  {
+    //    glRotatef(player.angle, 1, 1, 0);
+    //}
 
     glutSolidTeapot(.5);
-    glPopMatrix();
+    //glPopMatrix();
 }
 
 /**
@@ -426,13 +488,15 @@ void display( )
     updateWorldLimit();
     
     
-    
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
     drawLight();
     
+    // Draw Units
     drawCoordSystem();
     drawPlayer();
+    
+    //glPopMatrix();
     
     /*
     switch( DisplayMode )
@@ -932,8 +996,8 @@ void reshape(int w, int h)
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //glOrtho (-1.1, 1.1, -1.1,1.1, -1000.0, 1000.0);
-    gluPerspective (50, (float)w/h, 1, 10);
+    glOrtho (-8, 8, -4.5, 4.5, -1000.0, 1000.0);
+    //gluPerspective (50, (float)w/h, 1, 10);
     glMatrixMode(GL_MODELVIEW);
 }
 

@@ -113,7 +113,7 @@ std::vector<glm::vec3> animateMovement(glm::vec3 from, glm::vec3 to) {
        || from.y <= -worldLimitY) {
         
         // Make it bounce back
-        printf("LIMIT\n");
+        //printf("LIMIT\n");
         //to.x = 0;
         //to.y = 0;
         
@@ -394,7 +394,7 @@ void computeWorldLimit(){
     glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
     
     // get world limit for object limit
-    gluUnProject( 0, 0, winZ, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
+    gluUnProject( 0, 0, 1, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
     
     // convert world limit to abs
     worldLimitX = abs(worldLimitX)/2;
@@ -404,6 +404,9 @@ void computeWorldLimit(){
 
 void display( )
 {
+    // Compute viewpoint limit on world cord
+    computeWorldLimit();
+    
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
     drawLight();
@@ -490,13 +493,12 @@ void mouseMotion( int x, int y )
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
         printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
-        // Compute viewpoint limit on world cord
-        computeWorldLimit();
-        
         // Hitung angle relatif dari player
         //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
         float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
         if(playerAngle) player.angle = playerAngle;
+        
+        computeWorldLimit();
         
     }
     
@@ -579,7 +581,7 @@ void keyboard(unsigned char key, int x, int y)
 }
 
 void keyboardSpecial(int key, int x, int y) {
-    printf("key: %d\n",key);
+    //printf("key: %d\n",key);
     
     switch (key) {
         case GLUT_KEY_LEFT:
@@ -679,6 +681,8 @@ void init()
     glPolygonMode(GL_BACK, GL_FILL);
     //glPolygonMode(GL_BACK, GL_LINE);
     glShadeModel(GL_SMOOTH);
+    
+    
     
     // MESHES
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
@@ -891,7 +895,6 @@ int main(int argc, char** argv)
     glTranslatef(0,0,winZ);
     tbInitTransform();     
     tbHelp();
-    
 
     // cablage des callback
     glutReshapeFunc(reshape);

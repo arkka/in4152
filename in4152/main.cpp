@@ -20,6 +20,7 @@
 #include <GL/gl.h>
 #endif
 
+#include <glm/glm.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -34,27 +35,28 @@
  */
 
 struct Player {
-    float x, y, z;
-    float mx, my; // mouse location relative to player location x,y
-    float angle;
+    glm::vec3 pos;
+    glm::vec3 move;
+    glm::vec3 mouse;
     
-    //movement
-    float moveX, moveY;
-    float sx, sy;
+    float angle;
     float acceleration;
 };
 
 struct Bullet {
-    int type; // 0 fromplayer, 1 from enemy
-    float originX, originY, originZ;
-    float x, y, z;
+    glm::vec3 pos;
+    glm::vec3 move;
+    
     float angle;
+    float acceleration;
+    
+    int type; // 0 from player, 1 from enemy
 };
 
 /**
- * Initiate Unit Data
+ * Initialize Data Model
  */
- 
+
 Player player;
 
 
@@ -76,13 +78,10 @@ std::vector<float> MeshVertices;
 std::vector<unsigned int> MeshTriangles;
 
 //Declare your own global variables here:
-float tri_x = 0;
-float inc = 0.0001;
 float a = 30, b = 45, c = 60;
 int l = 1;
 float pos = 0.1;
 float x1l, x2l, y1l, y2l, z1l, z2l;
-
 
 
 GLint viewport[4]; //var to hold the viewport info
@@ -99,6 +98,39 @@ bool isLeftKeyPressed = false;
 bool isRightKeyPressed = false;
 bool isDownKeyPressed = false;
 bool isUpKeyPressed = false;
+
+////////// Movement
+std::vector<glm::vec3> animateMovement(glm::vec3 from, glm::vec3 to) {
+    std::vector<glm::vec3> vec;
+    
+    float distanceX = to.x - from.x;
+    float distanceY = to.y - from.y;
+    float distance = sqrt(distanceX * distanceX + distanceY * distanceY);
+    
+    if(from.x >= worldLimitX
+       || from.x <= -worldLimitX
+       || from.y >= worldLimitY
+       || from.y <= -worldLimitY) {
+        
+        // Make it bounce back
+        printf("LIMIT\n");
+        //to.x = 0;
+        //to.y = 0;
+        
+        //vec.push_back(from);
+        //vec.push_back(to);
+    }
+    
+    if (distance > 0) {
+        from.x += distanceX * easingAmount;
+        from.y += distanceY * easingAmount;
+    }
+    
+    vec.push_back(from);
+    vec.push_back(to);
+    
+    return vec;
+}
 
 ////////// Draw Functions
 
@@ -134,56 +166,13 @@ void drawPlayer()
 {
     //printf("cord: %f,%f\n",player.x,player.y);
     
-    // Movement limit
-    if((player.x >= worldLimitX && player.sx > 0)||(player.x <= -worldLimitX && player.sx < 0)) player.sx = 0;
-    if((player.y >= worldLimitY && player.sy > 0)||(player.y <= -worldLimitY && player.sy < 0)) player.sy = 0;
-    
-    // Movement easing v1
-    /*
-    if(!isRightKeyPressed && player.sx > 0) {
-        player.sx = player.sx - player.acceleration / 10;
-        if(player.sx < 0) player.sx = 0;
-    } else player.x = player.x + player.sx;
-    
-    if(!isLeftKeyPressed && player.sx<0) {
-        player.sx = player.sx + player.acceleration / 10;
-        if(player.sx > 0 ) player.sx = 0;
-    } else player.x = player.x + player.sx;
-    
-    if(!isUpKeyPressed && player.sy > 0) {
-        player.sy = player.sy - player.acceleration / 10;
-        if(player.sy < 0) player.sy = 0;
-    } else player.y = player.y + player.sy;
-    
-    if(!isDownKeyPressed && player.sy < 0) {
-        player.sy = player.sy + player.acceleration / 10;
-        if(player.sy > 0) player.sy = 0;
-    } else player.y = player.y + player.sy;
-     */
-    
-    // Movement easing v2
-    
-    float fromX, toX, fromY, toY;
-    
-    fromX = player.x;
-    toX = player.moveX;
-    
-    fromY = player.y;
-    toY = player.moveY;
-    
-    float distanceX = toX - fromX;
-    float distanceY = toY - fromY;
-    float distance = sqrt(distanceX * distanceX + distanceY * distanceY);
-    if (distance > 0) {
-        fromX += distanceX * easingAmount;
-        fromY += distanceY * easingAmount;
-    }
-    
-    player.x = fromX;
-    player.y = fromY;
+    std::vector<glm::vec3> moveVec = animateMovement(player.pos, player.move);
+    player.pos = moveVec[0];
+    player.move = moveVec[1];
 
+    
     glPushMatrix();
-    glTranslated(player.x, player.y, 0);
+    glTranslated(player.pos.x, player.pos.y, 0);
     drawCoordSystem();
     
     glRotatef(player.angle, 0, 0, 1);
@@ -198,36 +187,7 @@ void drawPlayer()
 
 void drawTriangle()
 {
-    //a simple example of a drawing function for a triangle
-    //1) try changing its color to red
-    //2) try changing its vertex positions
-    //3) add a second triangle in blue
-    //4) add a global variable (initialized at 0), which represents the
-    // x-coordinate of the first vertex of each triangle
-    //5) go to the function animate and increment this variable
-    //by a small value - observe the animation.
     
-    glTranslated(player.x, player.y, 0);
-    glColor3f(1,0,0);
-    glNormal3f(0,0,-1);
-    glBegin(GL_TRIANGLES);
-    glVertex3f(tri_x,0,0);
-    glColor3f(1, 1, 0);
-    glVertex3f(1,0,0);
-    glColor3f(1, 0, 1);
-    glVertex3f(0,.5,0);
-    glEnd();
-    
-    //blue triangle
-    /*
-     glColor3f(0, 0, 1);
-     glNormal3f(0, 0, 1);
-     glBegin(GL_TRIANGLES);
-     glVertex3f(tri_x, 1, 1);
-     glVertex3f(0, 0, 1);
-     glVertex3f(1, 1, 0);
-     glEnd();
-     */
 }
 
 
@@ -444,15 +404,13 @@ void computeWorldLimit(){
 
 void display( )
 {
-    // Compute viewpoint limit on world cord
-    computeWorldLimit();
-    
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
     drawLight();
     
     drawCoordSystem();
     drawPlayer();
+    
     /*
     switch( DisplayMode )
     {
@@ -524,7 +482,6 @@ void mouseMotion( int x, int y )
         glGetDoublev( GL_PROJECTION_MATRIX, projection );
         glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
 
-        
         winX = (float)x;
         winY = (float)viewport[3] - (float)y;
         glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
@@ -533,30 +490,13 @@ void mouseMotion( int x, int y )
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
         printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
+        // Compute viewpoint limit on world cord
+        computeWorldLimit();
         
         // Hitung angle relatif dari player
         //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
-        float playerAngle = (atan2(worldY - player.y,worldX - player.x) * 180 / M_PI);
+        float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
         if(playerAngle) player.angle = playerAngle;
-        //printf("angle player: %f\n",player.angle);
-        
-        //Hitung lokasi player follow cursor
-//        float xDistance = worldX - player.x;
-//        float yDistance = worldY - player.y;
-//        float distance = sqrt(xDistance * xDistance + yDistance * yDistance);
-//        if (distance > 1) {
-//            player.x += xDistance * easingAmount;
-//            player.y += yDistance * easingAmount;
-//        }
-        
-//        float xDistance = worldX - player.x;
-//        float yDistance = worldY - player.y;
-//        
-//        if((xDistance != 0) && (yDistance != 0)) {
-//            player.x -=  (((player.x-0.1) - player.x) / player.speed);
-//            player.y -=  (((player.y-0.1) - player.y) / player.speed);
-//        }
-        
         
     }
     
@@ -645,32 +585,30 @@ void keyboardSpecial(int key, int x, int y) {
         case GLUT_KEY_LEFT:
             isLeftKeyPressed = true;
             if (!isRightKeyPressed) {
-                player.moveX -= player.acceleration;
+                player.move.x -= player.acceleration;
             }
             break;
         case GLUT_KEY_RIGHT:
             isRightKeyPressed = true;
             if (!isLeftKeyPressed) {
-                player.moveX += player.acceleration;
+                player.move.x += player.acceleration;
             }
             break;
             
         case GLUT_KEY_DOWN:
             isDownKeyPressed = true;
             if (!isUpKeyPressed) {
-                player.moveY -= player.acceleration;            }
+                player.move.y -= player.acceleration;            }
             break;
             
         case GLUT_KEY_UP:
             isUpKeyPressed = true;
             if (!isDownKeyPressed) {
-                player.moveY += player.acceleration;
+                player.move.y += player.acceleration;
             }
             break;
             
     }
-    
-    printf("speed: %f,%f\n", player.sx, player.sy);
 }
 
 void keyboardSpecialUp(int key, int x, int y) {
@@ -746,14 +684,8 @@ void init()
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
     
     // Initialize player
-    player.x = -2;
-    player.y = 0;
-    player.z = 0;
-    
-    player.sx = 0.0;
-    player.sy = 0.0;
-    player.moveX = player.x;
-    player.moveY = player.y;
+    player.pos = glm::vec3(-2,0,0);
+    player.move = player.pos;
     player.acceleration = 0.5;
 }
 

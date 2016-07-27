@@ -100,25 +100,21 @@ bool isDownKeyPressed = false;
 bool isUpKeyPressed = false;
 
 ////////// Movement
-std::vector<glm::vec3> animateMovement(glm::vec3 from, glm::vec3 to) {
+
+std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false) {
     std::vector<glm::vec3> vec;
+    
+    bool isOutBoundary = false;
     
     float distanceX = to.x - from.x;
     float distanceY = to.y - from.y;
     float distance = sqrt(distanceX * distanceX + distanceY * distanceY);
     
-    if(from.x >= worldLimitX
-       || from.x <= -worldLimitX
-       || from.y >= worldLimitY
-       || from.y <= -worldLimitY) {
-        
-        // Make it bounce back
-        //printf("LIMIT\n");
-        //to.x = 0;
-        //to.y = 0;
-        
-        //vec.push_back(from);
-        //vec.push_back(to);
+    if(boundary){
+        if(from.x >= worldLimitX) to.x = from.x - easingAmount * 10;
+        if(from.x <= -worldLimitX) to.x = from.x + easingAmount * 10;
+        if(from.y >= worldLimitY) to.y = from.y - easingAmount * 10;
+        if(from.y <= -worldLimitY) to.y = from.y + easingAmount * 10;
     }
     
     if (distance > 0) {
@@ -130,6 +126,42 @@ std::vector<glm::vec3> animateMovement(glm::vec3 from, glm::vec3 to) {
     vec.push_back(to);
     
     return vec;
+}
+
+void updateMouseMovement() {
+    // Limit motion to screen size
+    if((player.mouse.y<=screenHeight && player.mouse.y>=0)&&(player.mouse.x<=screenWidth && player.mouse.x>=0)){
+        
+        //printf("cord at %d,%d\n",x,y);
+        
+        glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+        glGetDoublev( GL_PROJECTION_MATRIX, projection );
+        glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
+        
+        winX = (float) player.mouse.x;
+        winY = (float)viewport[3] - (float) player.mouse.y;
+        glReadPixels( player.mouse.x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
+        
+        // get world coord based on mouse
+        gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
+        printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
+        
+        // Hitung angle relatif dari player
+        //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
+        float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
+        if(playerAngle) player.angle = playerAngle;
+        
+    }
+}
+
+void updateWorldLimit(){
+    // get world limit for object limit
+    gluUnProject( 0, 0, 1, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
+    
+    // convert world limit to abs
+    worldLimitX = abs(worldLimitX)/2;
+    worldLimitY = abs(worldLimitY)/2;
+    //printf("world cord Limit at %f,%f,%f\n",worldLimitX,worldLimitY, worldLimitZ);
 }
 
 ////////// Draw Functions
@@ -166,7 +198,7 @@ void drawPlayer()
 {
     //printf("cord: %f,%f\n",player.x,player.y);
     
-    std::vector<glm::vec3> moveVec = animateMovement(player.pos, player.move);
+    std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
     player.pos = moveVec[0];
     player.move = moveVec[1];
 
@@ -385,27 +417,15 @@ void drawMesh()
     }
 }
 
-/**
- * Scene
- */
-void computeWorldLimit(){
-    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
-    glGetDoublev( GL_PROJECTION_MATRIX, projection );
-    glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
-    
-    // get world limit for object limit
-    gluUnProject( 0, 0, 1, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
-    
-    // convert world limit to abs
-    worldLimitX = abs(worldLimitX)/2;
-    worldLimitY = abs(worldLimitY)/2;
-    //printf("world cord Limit at %f,%f,%f\n",worldLimitX,worldLimitY, worldLimitZ);
-}
-
 void display( )
 {
+    // Update Mouse
+    updateMouseMovement();
+    
     // Compute viewpoint limit on world cord
-    computeWorldLimit();
+    updateWorldLimit();
+    
+    
     
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
@@ -474,35 +494,8 @@ void mouseClick( int button, int state, int x, int y )
 
 void mouseMotion( int x, int y )
 {
-    // Limit motion to screen size
-    
-    
-    if((y<=screenHeight && y>=0)&&(x<=screenWidth && x>=0)){
-        
-        //printf("cord at %d,%d\n",x,y);
-        
-        glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
-        glGetDoublev( GL_PROJECTION_MATRIX, projection );
-        glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
-
-        winX = (float)x;
-        winY = (float)viewport[3] - (float)y;
-        glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
-        
-        // get world coord based on mouse
-        gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
-        printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
-        
-        // Hitung angle relatif dari player
-        //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
-        float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
-        if(playerAngle) player.angle = playerAngle;
-        
-        computeWorldLimit();
-        
-    }
-    
-    
+    player.mouse.x = x;
+    player.mouse.y = y;
     
 }
 

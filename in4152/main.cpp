@@ -128,11 +128,19 @@ std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool bounda
     return vec;
 }
 
+float computeMouseAngle(glm::vec2 v1, glm::vec2 v2)
+{
+    glm::vec2 base = glm::vec2(v2.x, v1.y);
+    
+    return (0 - atan2(v1.y-v2.y, v2.x-v1.x)) * (180 / M_PI);
+    
+}
+
 void updateMouseMovement() {
     // Limit motion to screen size
     if((player.mouse.y<=screenHeight && player.mouse.y>=0)&&(player.mouse.x<=screenWidth && player.mouse.x>=0)){
   
-        printf("cord at %f,%f\n",player.mouse.x,player.mouse.y);
+        //printf("cord at %f,%f\n",player.mouse.x,player.mouse.y);
         
 
         glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
@@ -153,6 +161,15 @@ void updateMouseMovement() {
         //float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
         //if(playerAngle) player.angle = playerAngle;
         
+        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        glVertex3f(worldX,worldY,worldZ);
+        
+        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        glVertex3f(worldX,player.pos.y,worldZ);
+
+        
+        
+        player.angle = computeMouseAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         // Debug mouse angle
         glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -197,19 +214,7 @@ void updateMouseMovement() {
     }
 }
 
-void updateWorldLimit(){
-    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
-    glGetDoublev( GL_PROJECTION_MATRIX, projection );
-    glGetIntegerv( GL_VIEWPORT, viewport );
-    
-    // get world limit for object limit
-    gluUnProject( 0, 0, 1, modelview, projection, viewport, &worldLimitX, &worldLimitY, &worldZ);
-    
-    // convert world limit to abs
-    worldLimitX = abs(worldLimitX)/2;
-    worldLimitY = abs(worldLimitY)/2;
-    //printf("world cord Limit at %f,%f,%f\n",worldLimitX,worldLimitY, worldLimitZ);
-}
+
 
 ////////// Draw Functions
 
@@ -257,7 +262,7 @@ void drawPlayer()
     
     printf("%f\n", player.angle);
     
-    //glRotatef(15, 1, -1, 0);
+    
     glRotatef(player.angle, 0, 0, 1);
     
   
@@ -266,11 +271,14 @@ void drawPlayer()
 //        glRotatef(player.angle, 1, 0, 0);
 //    }
  
-    
-    //if(player.angle >=45 && player.angle <= 135)  {
-    //    glRotatef(player.angle, 1, 1, 0);
-    //}
 
+    if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
+    else if (player.angle > 135) glRotatef(180, 1, 0, 0);
+    
+    if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
+    else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
+    
+    
     glutSolidTeapot(.5);
     //glPopMatrix();
 }
@@ -483,10 +491,7 @@ void display( )
 {
     // Update Mouse
     updateMouseMovement();
-    
-    // Compute viewpoint limit on world cord
-    updateWorldLimit();
-    
+
     
     //set the light to the right position
     glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
@@ -744,6 +749,10 @@ void init()
     // MESHES
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
     
+    // Initialize scene
+    worldLimitX = 8;
+    worldLimitY = 4.5;
+    
     // Initialize player
     player.pos = glm::vec3(-2,0,0);
     player.move = player.pos;
@@ -996,7 +1005,7 @@ void reshape(int w, int h)
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho (-8, 8, -4.5, 4.5, -1000.0, 1000.0);
+    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     //gluPerspective (50, (float)w/h, 1, 10);
     glMatrixMode(GL_MODELVIEW);
 }

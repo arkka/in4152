@@ -48,6 +48,10 @@ struct Player {
     
     float angle;
     float acceleration;
+    
+    bool isDead;
+    int hp;
+    
 };
 
 struct Enemy {
@@ -60,16 +64,19 @@ struct Enemy {
     int type;
     
     bool isDead;
+    int hp;
 };
 
 struct Bullet {
+    glm::vec3 origin;
     glm::vec3 pos;
     glm::vec3 move;
-    
     float angle;
     float acceleration;
     
     int type; // 0 from player, 1 from enemy
+    
+    bool isDestroyed;
 };
 
 
@@ -155,6 +162,20 @@ struct Material matGold {
     0.4 // n
 };
 
+struct Material matGreenBullet {
+    {0.0,	0.0,	0.0}, // Ka
+    {0.1,	0.35,	0.1}, // Kd
+    {0.45,	0.55,	0.45}, // Ks
+    0.25 // n
+};
+
+struct Material matRedBullet {
+    {0.0,	0.0,	0.0}, // Ka
+    {0.5,	0.0,	0.0}, // Kd
+    {0.7,	0.7,	0.7}, // Ks
+    0.25 // n
+};
+
 bool diffuse = false;
 bool emissive = false;
 bool specular = false;
@@ -195,7 +216,7 @@ std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool bounda
     return vec;
 }
 
-float computeMouseAngle(glm::vec2 v1, glm::vec2 v2)
+float computeAngle(glm::vec2 v1, glm::vec2 v2)
 {
     glm::vec2 base = glm::vec2(v2.x, v1.y);
     
@@ -230,7 +251,7 @@ void updatePlayerMouseMovement() {
 
         
         
-        player.angle = computeMouseAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
+        player.angle = computeAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         // Debug mouse angle
         glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -288,6 +309,23 @@ bool checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float b
     }
     
     return true;
+}
+
+void fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float acceleration = 0.10) {
+    
+    
+    struct Bullet bullet {
+        pos, //origin
+        pos, // pos
+        move, // move
+        angle, // angle
+        acceleration, // acceleration
+        type, // type
+        false, // isDestroyed
+    };
+
+    
+    bullets.push_back(bullet);
 }
 
 ////////// Draw Functions
@@ -381,51 +419,138 @@ void drawWater() {
 }
 
 void drawBullets() {
-    
+    for (int i=0; i < bullets.size(); i++) {
+        // printf("Bullet %f,  cos %f, sin %f\n", bullets[i].angle, cos(bullets[i].angle * M_PI / 180.0f), sin(bullets[i].angle * M_PI / 180.0f));
+        
+        
+        // check boundary
+
+        if((bullets[i].pos.x >= worldLimitX)
+           ||(bullets[i].pos.x <= -worldLimitX)
+           ||(bullets[i].pos.y >= worldLimitY)
+           ||(bullets[i].pos.y <= -worldLimitY)) {
+            bullets[i].isDestroyed = true;
+        }
+
+        if(!bullets[i].isDestroyed) {
+            // Check collision
+            
+            // enemy got hit ?
+            if(bullets[i].type == 0) {
+                for (int j=0; j < enemies.size(); j++) {
+                    if(checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.1, 0.1)) {
+                        enemies[j].hp -= 1;
+                        bullets[i].isDestroyed = true;
+                        
+                        if(enemies[j].hp<=0) {
+                            enemies[j].hp = 0;
+                            enemies[j].isDead = true;
+                        }
+                        printf("Enemy HP: %d/%d\n",enemies[j].hp, 5);
+                        break;  
+                    }
+                }
+                
+            }
+            // player got hit ?
+            else if(bullets[i].type == 1 && checkCollide(bullets[i].pos, 0.1, 0.1, player.pos, 0.1, 0.1)) {
+                player.hp -= 1;
+                bullets[i].isDestroyed = true;
+                
+                if(player.hp<=0) {
+                    player.hp = 0;
+                    player.isDead = true;
+                }
+                printf("Player HP: %d/%d\n",player.hp, 20);
+            }
+
+            
+            
+            
+            
+            bullets[i].pos.x += bullets[i].acceleration * cos(bullets[i].angle * M_PI / 180.0f);
+            bullets[i].pos.y += bullets[i].acceleration * sin(bullets[i].angle * M_PI / 180.0f);
+            
+            glPushMatrix();
+            if(bullets[i].type == 0) setMaterial(matGreenBullet);
+            else if(bullets[i].type == 1) setMaterial(matRedBullet);
+            
+            glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
+            glutSolidCube(0.05);
+            
+            glPopMatrix();
+        }
+    }
 }
 
 void drawEnemies()
 {
     for (int i=0; i < enemies.size(); i++) {
         
-        
-        // check collide with other
-        bool collide = false;
-        struct Enemy collideWith;
-        
-        for (int j=0; j < enemies.size(); j++) {
-            if(i!=j && checkCollide(enemies[i].pos, 0.5, 0.5, enemies[j].pos, 0.5, 0.5)) {
-                collide = true;
-                collideWith = enemies[j];
-                break;
-            } else collide = false;
+        // check collide with player
+        if(checkCollide(player.pos, 0.2, 0.2, enemies[i].pos, 0.2, 0.2)) {
+            // Suicide bomb!
+            player.isDead = true;
+            enemies[i].isDead = true;
         }
-
-        if(collide) {
-            glm::vec3 distance = enemies[i].pos - collideWith.pos;
-            enemies[i].pos += distance * enemies[i].acceleration;
-
-        } else if(enemies[i].type > 3) {
-            // This enemy follow player position.. kamikaze!
-
-            enemies[i].move = player.pos;
+        
+        if(!enemies[i].isDead) {
+            // check collide with other
+            bool collide = false;
+            struct Enemy collideWith;
+            
+            for (int j=0; j < enemies.size(); j++) {
+                if(i!=j && checkCollide(enemies[i].pos, 1, 1, enemies[j].pos, 1, 1)) {
+                    collide = true;
+                    collideWith = enemies[j];
+                    break;
+                } else collide = false;
+            }
+            
+            if(collide) {
+                glm::vec3 distance = enemies[i].pos - collideWith.pos;
+                enemies[i].pos += distance * enemies[i].acceleration;
+                
+            } else if(enemies[i].type > 3) {
+                // This enemy follow player position.. kamikaze!
+                
+                enemies[i].move = player.pos;
+            }
+            
+            
+            // Movement
+            std::vector<glm::vec3> moveVec = computeMovement(enemies[i].pos, enemies[i].move, false, enemies[i].acceleration, enemies[i].type);
+            enemies[i].pos = moveVec[0];
+            enemies[i].move = moveVec[1];
+            
+            //printf("enemy pos %d: %f %f\n", i+1, enemies[i].pos.x, enemies[i].pos.y);
+            
+            // Rotation Angle
+            enemies[i].angle = computeAngle(glm::vec2(enemies[i].pos.x, enemies[i].pos.y), glm::vec2(player.pos.x, player.pos.y));
+            
+            
+            // Fire bullets
+            if(randomRange(0,1000)>990) fireBullet(enemies[i].pos, player.pos,enemies[i].angle, 1);
+            
+            // Draw
+            glPushMatrix();
+            setMaterial(matChrome);
+            
+            glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
+            // Seamless rotation
+            glRotatef(enemies[i].angle, 0, 0, 1);
+            if(enemies[i].angle > 45 && enemies[i].angle <= 135)  glRotatef((enemies[i].angle - 45) * 2, 1, 0, 0);
+            else if (enemies[i].angle > 135) glRotatef(180, 1, 0, 0);
+            
+            if(enemies[i].angle < -45 && enemies[i].angle >= -135) glRotatef((enemies[i].angle + 45) * -2, 1, 0, 0);
+            else if(enemies[i].angle < -135) glRotatef(-180, 1, 0, 0);
+            
+            glutSolidTeapot(0.1);
+            
+            glPopMatrix();
         }
-
         
         
-        std::vector<glm::vec3> moveVec = computeMovement(enemies[i].pos, enemies[i].move, false, enemies[i].acceleration, enemies[i].type);
-        enemies[i].pos = moveVec[0];
-        enemies[i].move = moveVec[1];
-        
-        //printf("enemy pos %d: %f %f\n", i+1, enemies[i].pos.x, enemies[i].pos.y);
-        
-        glPushMatrix();
-        setMaterial(matChrome);
-        
-        glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
-        glutSolidCube(0.1);
-        
-        glPopMatrix();
     }
     
     
@@ -542,11 +667,13 @@ void drawMesh()
 void spawnEnemy() {
     struct Enemy enemy {
         glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
-        glm::vec3(randomRange(-2, 6),randomRange(-2.5, 2.5),0), // move
+        glm::vec3(0,0,0), // move
         0, // angle
         0.01, // acceleration
         (int) randomRange(0, 5), // type
-        false
+        false, // is dead
+        5 // hp
+        
     };
     
     enemies.push_back(enemy);
@@ -582,6 +709,7 @@ void display( )
     
     
     
+    
     // End of Game Logic
     
     // Draw Environments
@@ -591,9 +719,11 @@ void display( )
     
     // Draw Units
     //drawCoordSystem();
-    drawPlayer();
+    
+    if(!player.isDead) drawPlayer();
     
     drawEnemies();
+    drawBullets();
     
     glFlush ();
     
@@ -617,8 +747,7 @@ void mouseClick( int button, int state, int x, int y )
 {
     if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN )
     {
-        //printf("mouse click pressed at %d,%d\n",x,y);
-        
+        fireBullet(player.pos, glm::vec3(worldX,worldY,0),player.angle);
         
         
     }
@@ -652,15 +781,25 @@ void keyboard(unsigned char key, int x, int y)
     {
         case 27:     // touche ESC
             exit(0);
+        
+        case 32:
+            fireBullet(player.pos, glm::vec3(worldX,worldY,0),player.angle);
+            break;
             
         case 'a':
-            //turn AA on
-            antiAlias = true;
-            
+            player.move.x -= player.acceleration;
             break;
-        case 'A':
-            //turn AA off
-            antiAlias = false;
+            
+        case 'd':
+            player.move.x += player.acceleration;
+            break;
+            
+        case 's':
+            player.move.y -= player.acceleration;
+            break;
+            
+        case 'w':
+            player.move.y += player.acceleration;
             break;
             
         case 'i':
@@ -693,7 +832,7 @@ void keyboard(unsigned char key, int x, int y)
 }
 
 void keyboardSpecial(int key, int x, int y) {
-    //printf("key: %d\n",key);
+    printf("key: %d\n",key);
     
     switch (key) {
         case GLUT_KEY_LEFT:
@@ -726,6 +865,7 @@ void keyboardSpecial(int key, int x, int y) {
 }
 
 void keyboardSpecialUp(int key, int x, int y) {
+    printf("key: %d\n",key);
     switch (key) {
         case GLUT_KEY_LEFT:
             isLeftKeyPressed = false;
@@ -809,7 +949,9 @@ void init()
     // Initialize player
     player.pos = glm::vec3(-2,0,0);
     player.move = player.pos;
-    player.acceleration = 0.5;
+    player.acceleration = 0.25;
+    player.hp = 20;
+    player.isDead = false;
 }
 
 

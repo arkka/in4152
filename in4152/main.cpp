@@ -34,6 +34,13 @@
  * Data Model
  */
 
+struct Material {
+    GLfloat Ka [4];
+    GLfloat Kd[4];
+    GLfloat Ks[4];
+    GLfloat n;
+} Material;
+
 struct Player {
     glm::vec3 pos;
     glm::vec3 move;
@@ -41,6 +48,18 @@ struct Player {
     
     float angle;
     float acceleration;
+};
+
+struct Enemy {
+    glm::vec3 pos;
+    glm::vec3 move;
+    
+    float angle;
+    float acceleration;
+    
+    int type;
+    
+    bool isDead;
 };
 
 struct Bullet {
@@ -52,6 +71,8 @@ struct Bullet {
     
     int type; // 0 from player, 1 from enemy
 };
+
+
 
 /**
  * Initialize Data Model
@@ -69,20 +90,33 @@ enum DisplayModeType {TRIANGLE=1, FACE=2, CUBE=3, ARM=4, MESH=5,};
 
 DisplayModeType DisplayMode = TRIANGLE;
 
-unsigned int screenWidth = 800;  // screen width
-unsigned int screenHeight = 600;  // screen height
+unsigned int screenWidth = 1920;  // screen width
+unsigned int screenHeight = 800;  // screen height
 
 
-float LightPos[4] = {1,1,0.4,1};
+// Light pos
+GLfloat position0[] = {5.0, 5.0, 10.0, 0.0};
+GLfloat diffuse0[] = {1.0, 1.0, 1.0, 1.0}; // Id term - Red
+GLfloat specular0[] = {1.0, 1.0, 1.0, 1.0}; // Is term - White
+GLfloat ambient0[] = {0.1, 0.1, 0.1, 1.0}; // Ia term - Gray
+GLfloat shininess0[] = { 50.0 };
+
 std::vector<float> MeshVertices;
 std::vector<unsigned int> MeshTriangles;
 
-//Declare your own global variables here:
-float a = 30, b = 45, c = 60;
-int l = 1;
-float pos = 0.1;
-float x1l, x2l, y1l, y2l, z1l, z2l;
+// Declare your own global variables here:
+// Game Logic
 
+std::vector<struct Bullet> bullets;
+std::vector<struct Enemy> enemies;
+int maxEnemies = 5;
+bool isBoss = false;
+
+// Options
+bool antiAlias = false;
+
+// Mesh
+float x1l, x2l, y1l, y2l, z1l, z2l;
 
 GLint viewport[4]; //var to hold the viewport info
 GLdouble modelview[16]; //var to hold the modelview info
@@ -92,16 +126,49 @@ GLfloat winZ = -5; // Default win Z coord
 GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
+// Material
+struct Material matCopper {
+    {0.19225, 0.0735, 0.0225}, // Ka
+    {0.7038, 0.27048, 0.0828}, // Kd
+    {0.256777, 0.137622, 0.086014}, // Ks
+    0.1 // n
+};
 
+struct Material matChrome {
+    {0.25, 0.25,	0.25}, // Ka
+    {0.4,	0.4,	0.4}, // Kd
+    {0.774597,	0.774597,	0.774597}, // Ks
+    0.6 // n
+};
+
+struct Material matRuby {
+    {0.1745, 0.01175,	0.01175}, // Ka
+    {0.61424,	0.04136,	0.04136}, // Kd
+    {0.727811,	0.626959,	0.626959}, // Ks
+    0.6 // n
+};
+
+struct Material matGold {
+    {0.24725,	0.1995,	0.0745}, // Ka
+    {0.75164,	0.60648,	0.22648}, // Kd
+    {0.628281,	0.555802,	0.366065}, // Ks
+    0.4 // n
+};
+
+bool diffuse = false;
+bool emissive = false;
+bool specular = false;
+
+
+
+////////// Movement
 float easingAmount = 0.05;
 bool isLeftKeyPressed = false;
 bool isRightKeyPressed = false;
 bool isDownKeyPressed = false;
 bool isUpKeyPressed = false;
 
-////////// Movement
-
-std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false) {
+std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false, float acceleration=0.05, int minDistance=0) {
     std::vector<glm::vec3> vec;
     
     bool isOutBoundary = false;
@@ -111,15 +178,15 @@ std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool bounda
     float distance = sqrt(distanceX * distanceX + distanceY * distanceY);
     
     if(boundary){
-        if(from.x >= worldLimitX) to.x = from.x - easingAmount * 10;
-        if(from.x <= -worldLimitX) to.x = from.x + easingAmount * 10;
-        if(from.y >= worldLimitY) to.y = from.y - easingAmount * 10;
-        if(from.y <= -worldLimitY) to.y = from.y + easingAmount * 10;
+        if(from.x >= worldLimitX) to.x = from.x - acceleration * 10;
+        if(from.x <= -worldLimitX) to.x = from.x + acceleration * 10;
+        if(from.y >= worldLimitY) to.y = from.y - acceleration * 10;
+        if(from.y <= -worldLimitY) to.y = from.y + acceleration * 10;
     }
     
-    if (distance > 0) {
-        from.x += distanceX * easingAmount;
-        from.y += distanceY * easingAmount;
+    if (distance > minDistance) {
+        from.x += distanceX * acceleration;
+        from.y += distanceY * acceleration;
     }
     
     vec.push_back(from);
@@ -136,7 +203,7 @@ float computeMouseAngle(glm::vec2 v1, glm::vec2 v2)
     
 }
 
-void updateMouseMovement() {
+void updatePlayerMouseMovement() {
     // Limit motion to screen size
     if((player.mouse.y<=screenHeight && player.mouse.y>=0)&&(player.mouse.x<=screenWidth && player.mouse.x>=0)){
   
@@ -154,12 +221,6 @@ void updateMouseMovement() {
         // get world coord based on mouse
         gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
         //printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
-        
-        // Hitung angle relatif dari player
-        //printf("range %f,%f\n", worldY - player.y,worldX - player.x);
-        
-        //float playerAngle = (atan2(worldY - player.pos.y,worldX - player.pos.x) * 180 / M_PI);
-        //if(playerAngle) player.angle = playerAngle;
         
         glVertex3f(player.pos.x,player.pos.y,player.pos.z);
         glVertex3f(worldX,worldY,worldZ);
@@ -196,27 +257,46 @@ void updateMouseMovement() {
         glVertex3f(player.pos.x,player.pos.y,player.pos.z);
         glVertex3f(worldX,player.pos.y,worldZ);
         glEnd();
-        
-        
-        /*
-        
-        glBegin(GL_LINES);
-        glColor3f(1,1,0);
-        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        glVertex3f(0,0,0);
-        glEnd();
-        
-         */
-        
         glPopAttrib();
 
         
     }
 }
 
+float randomRange(int min, int max) {
+    return rand() % (max - min + 1) + min;
+}
 
+bool checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)
+{
+    float x1Min = a.x;
+    float x1Max = a.x+aWidth;
+    float y1Max = a.y+aHeight;
+    float y1Min = a.y;
+    
+    float x2Min = b.x;
+    float x2Max = b.x+bWidth;
+    float y2Max = b.y+bHeight;
+    float y2Min = b.y;
+    
+    // Collision tests
+    if( x1Max < x2Min || x1Min > x2Max ) {
+        return false;
+    }
+    if( y1Max < y2Min || y1Min > y2Max ) {
+        return false;
+    }
+    
+    return true;
+}
 
 ////////// Draw Functions
+void setMaterial(struct Material mat) {
+    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
+    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
+}
 
 //function to draw coordinate axes with a certain length (1 as a default)
 void drawCoordSystem(float length=1)
@@ -246,198 +326,170 @@ void drawCoordSystem(float length=1)
     glPopAttrib();
 }
 
+void drawLight() {
+    glPushMatrix();
+    glTranslatef(position0[0], position0[1], position0[2]);
+    
+    setMaterial(matGold);
+    glutSolidSphere(1,10,10);
+    
+    glPopMatrix();
+
+    
+}
+
+void drawSky() {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    
+    glDisable(GL_LIGHTING);
+    glEnable(GL_COLOR);
+    
+    glPushMatrix();
+    glColor3d(0.52,0.8,0.92);
+    glBegin(GL_QUADS);
+    glVertex3f(-10.0f, 0.0f, -10.0f);
+    glVertex3f( 10.0f, 0.0f, -10.0f);
+    glVertex3f( 10.0f, 5.0f, -10.0f);
+    glVertex3f(-10.0f, 5.0f, -10.0f);
+    glEnd();
+
+    
+    glPopMatrix();
+    
+    glPopAttrib();
+}
+
+void drawTerrain() {
+
+}
+
+void drawWater() {
+    glPushMatrix();
+    //setMaterial(matCopper);
+    
+    //glEnable(GL_COLOR);
+    //glColor3d(1,0,0);
+    glBegin(GL_QUADS);
+    glVertex3f(-10.0f, -2.0f, -10.0f);
+    glVertex3f( 10.0f, -2.0f, -10.0f);
+    glVertex3f( 10.0f, -5.0f, 10.0f);
+    glVertex3f(-10.0f, -5.0f, 10.0f);
+    glEnd();
+    
+    glPopMatrix();
+
+}
+
+void drawBullets() {
+    
+}
+
+void drawEnemies()
+{
+    for (int i=0; i < enemies.size(); i++) {
+        
+        
+        // check collide with other
+        bool collide = false;
+        struct Enemy collideWith;
+        
+        for (int j=0; j < enemies.size(); j++) {
+            if(i!=j && checkCollide(enemies[i].pos, 0.5, 0.5, enemies[j].pos, 0.5, 0.5)) {
+                collide = true;
+                collideWith = enemies[j];
+                break;
+            } else collide = false;
+        }
+
+        if(collide) {
+            glm::vec3 distance = enemies[i].pos - collideWith.pos;
+            enemies[i].pos += distance * enemies[i].acceleration;
+
+        } else if(enemies[i].type > 3) {
+            // This enemy follow player position.. kamikaze!
+
+            enemies[i].move = player.pos;
+        }
+
+        
+        
+        std::vector<glm::vec3> moveVec = computeMovement(enemies[i].pos, enemies[i].move, false, enemies[i].acceleration, enemies[i].type);
+        enemies[i].pos = moveVec[0];
+        enemies[i].move = moveVec[1];
+        
+        //printf("enemy pos %d: %f %f\n", i+1, enemies[i].pos.x, enemies[i].pos.y);
+        
+        glPushMatrix();
+        setMaterial(matChrome);
+        
+        glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
+        glutSolidCube(0.1);
+        
+        glPopMatrix();
+    }
+    
+    
+}
+
 void drawPlayer()
 {
-    //printf("cord: %f,%f\n",player.x,player.y);
+    // Mouse movement relative to player
+    updatePlayerMouseMovement();
+    // printf("%f\n", player.angle);
     
+    // Update player object movement
     std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
     player.pos = moveVec[0];
     player.move = moveVec[1];
 
-    
-    
-    //glPushMatrix();
+    glPushMatrix();
+    setMaterial(matGold);
     glTranslated(player.pos.x, player.pos.y, 0);
-    drawCoordSystem();
     
-    printf("%f\n", player.angle);
-    
-    
+    // Seamless player rotation
     glRotatef(player.angle, 0, 0, 1);
-    
-  
-//    if(player.angle >=0 && player.angle <= 90)  {
-//        glRotatef(player.angle, 0, 0, 1);
-//        glRotatef(player.angle, 1, 0, 0);
-//    }
- 
-
     if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
     else if (player.angle > 135) glRotatef(180, 1, 0, 0);
     
     if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
     else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
     
+    // Draw object
+    glutSolidTeapot(0.2);
     
-    glutSolidTeapot(.5);
-    //glPopMatrix();
-}
-
-/**
- * Several drawing functions for you to work on
- */
-
-void drawTriangle()
-{
-    
-}
-
-
-void drawUnitFace()
-{
-    //1) draw a unit quad in the x,y plane oriented along the z axis
-    //2) make sure the orientation of the vertices is positive (counterclock wise)
-    //3) What happens if the order is inversed?
-    
-    glColor3f(0, 1, 1);
-    glNormal3f(0, 0, 1);
-    glBegin(GL_QUADS);
-    /*
-     glVertex3f(0, 0, 0);
-     glVertex3f(0, 1, 0);
-     glVertex3f(1, 1, 0);
-     glVertex3f(1, 0, 0);
-     */
-    
-    glVertex3f(1, 0, 0);
-    glVertex3f(1, 1, 0);
-    glVertex3f(0, 1, 0);
-    glVertex3f(0, 0, 0);
-    
-    
-    
-    glEnd();
-    
-}
-
-void drawUnitCube()
-{
-    //1) draw a cube using your function drawUnitFace
-    //rely on glTranslate, glRotate, glPushMatrix, and glPopMatrix
-    //the latter two influence the model matrix, as seen during the course.
-    //glPushMatrix stores the current matrix and puts a copy on
-    //the top of a stack.
-    //glPopMatrix pops the top matrix on the stack
-    
-    
-    glPushMatrix();
-    glRotated(180, 1, 0, 0);
-    glTranslated(0, -1, 0);
-    drawUnitFace();
-    //drawTriangle();
-    
-    glPopMatrix();
-    
-    glPushMatrix();
-    glRotated(90,1,0,0);
-    drawUnitFace();
-    
-    glTranslated(.5, 0, -1);
-    glRotated(180, 0, 1, 0);
-    glTranslated(-.5, 0, 0);
-    
-    drawUnitFace();
-    
-    
-    glPopMatrix();
-    
-    glPushMatrix();
-    glRotated(-90, 0, 1, 0);
-    drawUnitFace();
-    
-    
-    glTranslatef(1, 0, 0);
-    glRotated(90, 0, 1, 0);
-    drawUnitFace();
-    
-    
-    
-    glTranslatef(1, 0, 0);
-    glRotated(90, 0, 1, 0);
-    drawUnitFace();
-    
-    
-    glPopMatrix();
-    
-    
-    
-}
-
-void drawArm()
-{
-    //produce a three-unit arm (upperarm, forearm, hand) making use of your
-    //function drawUnitCube to define each of them
-    //1) define 3 global variables that control the angles
-    //between the arm parts
-    //and add cases to the keyboard function to control these values
-    
-    //2) use these variables to define your arm
-    //use glScalef to achieve different arm length
-    //use glRotate/glTranslate to correctly place the elements
-    
-    //3 optional) make an animated snake out of these boxes
-    //(an arm with 10 joints that moves using the animate function)
-    
-    glPushMatrix();
-    
-    glRotatef(a,0,0,1);
-    
-    glPushMatrix();
-    glScalef(.5,1.5,.5);
-    drawUnitCube();
-    glPopMatrix();
-    
-    glTranslatef(0, 1.5, 0);
-    glRotatef(b, 0, 0, 1);
-    
-    glPushMatrix();
-    glScalef(.5, 1, .5);
-    drawUnitCube();
-    glPopMatrix();
-    
-    glTranslatef(0, 1, 0);
-    glRotatef(c, 0, 0, 1);
-    glScalef(.5, .5, .5);
-    drawUnitCube();
+//    
+//    
+//    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
+//        
+//        
+//        x1l = MeshVertices[MeshTriangles[i + 1] * 3] - MeshVertices[MeshTriangles[i] * 3];
+//        y1l= MeshVertices[MeshTriangles[i + 1] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
+//        z1l = MeshVertices[MeshTriangles[i + 1] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
+//        
+//        x2l = MeshVertices[MeshTriangles[i + 2] * 3] - MeshVertices[MeshTriangles[i] * 3];
+//        y2l = MeshVertices[MeshTriangles[i + 2] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
+//        z2l = MeshVertices[MeshTriangles[i + 2] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
+//        
+//        glNormal3f(y1l * z2l - y2l * z1l, z1l * x2l - z2l * x1l, x1l * y2l - x2l * y1l);
+//        
+//        glBegin(GL_TRIANGLES);
+//        glVertex3f(MeshVertices[MeshTriangles[i]*3],
+//                   MeshVertices[MeshTriangles[i]*3+1],
+//                   MeshVertices[MeshTriangles[i]*3+2]
+//                   );
+//        glVertex3f(MeshVertices[MeshTriangles[i+1]*3],
+//                   MeshVertices[MeshTriangles[i+1]*3 + 1],
+//                   MeshVertices[MeshTriangles[i+1]*3 + 2]
+//                   );
+//        glVertex3f(MeshVertices[MeshTriangles[i+2]*3],
+//                   MeshVertices[MeshTriangles[i+2]*3 + 1],
+//                   MeshVertices[MeshTriangles[i+2]*3 + 2]
+//                   );
+//        glEnd();
+//    }
     
     glPopMatrix();
 }
-
-void drawLight()
-{
-    //1) use glutSolidSphere to draw a sphere at the light's position LightPos
-    //use glTranslatef to move it to the right location
-    //to make the light source bright, follow the drawCoordSystem function
-    //to deactivate the lighting temporarily and draw it in yellow
-    
-    //2) make the light position controllable via the keyboard function
-    
-    //3) add normal information to all your faces of the previous functions
-    //and observe the shading after pressing 'L' to activate the lighting
-    //you can use 'l' to turn it off again
-    
-    glPushMatrix();
-    
-    glTranslatef(LightPos[0], LightPos[1], LightPos[2]);
-    
-    glColor3f(1, 1, l);
-    glNormal3f(0, 0, 1);
-    glutSolidSphere(.05,50,50);
-    
-    glPopMatrix();
-    
-}
-
 
 void drawMesh()
 {
@@ -455,7 +507,6 @@ void drawMesh()
     //4) try loading your own model (export it from Blender as a Wavefront obj) and replace the provided mesh file.
     
     //cout << MeshTriangles[1] << "\n";
-    glColor3f(1, 0, 0);
     
     for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
         
@@ -487,51 +538,65 @@ void drawMesh()
     }
 }
 
+
+void spawnEnemy() {
+    struct Enemy enemy {
+        glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
+        glm::vec3(randomRange(-2, 6),randomRange(-2.5, 2.5),0), // move
+        0, // angle
+        0.01, // acceleration
+        (int) randomRange(0, 5), // type
+        false
+    };
+    
+    enemies.push_back(enemy);
+}
+
+
+
+
 void display( )
 {
-    // Update Mouse
-    updateMouseMovement();
-
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //set the light to the right position
-    glLightfv(GL_LIGHT0,GL_POSITION,LightPos);
+    // Light
+    glLightfv(GL_LIGHT0, GL_POSITION, position0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
     drawLight();
+
+    // Options
+    if(antiAlias) {
+        printf("ANTI ALIAS: ON\n");
+        glEnable(GL_MULTISAMPLE_ARB);
+    }
+    
+    // Game Logic
+    
+    // normal mobs
+    if(enemies.size()< maxEnemies && !isBoss) {
+        spawnEnemy();
+    }
+    
+    
+    
+    
+    // End of Game Logic
+    
+    // Draw Environments
+    //drawSky();
+    //drawTerrain();
+    //drawWater();
     
     // Draw Units
-    drawCoordSystem();
+    //drawCoordSystem();
     drawPlayer();
     
-    //glPopMatrix();
+    drawEnemies();
     
-    /*
-    switch( DisplayMode )
-    {
-        case TRIANGLE:
-            drawCoordSystem();
-            drawTriangle();
-            break;
-        case FACE:
-            drawCoordSystem();
-            drawUnitFace();
-            break;
-        case CUBE:
-            drawCoordSystem();
-            drawUnitCube();
-            break;
-        case ARM:
-            drawCoordSystem();
-            drawArm();
-        case MESH:
-            drawMesh();
-            drawCoordSystem();
-            
-            //...
-            
-        default:
-            
-            break;
-    }
-     */
+    glFlush ();
+    
 }
 
 
@@ -587,59 +652,44 @@ void keyboard(unsigned char key, int x, int y)
     {
         case 27:     // touche ESC
             exit(0);
-        case 'L':
-            //turn lighting on
-            glEnable(GL_LIGHTING);
-            l = 0;
-            break;
-        case 'l':
-            //turn lighting off
-            glDisable(GL_LIGHTING);
-            l = 1;
-            break;
+            
         case 'a':
-            //first arm angle increase
-            a = a + 5;
+            //turn AA on
+            antiAlias = true;
+            
             break;
-        case 'z':
-            //first arm angle decrease
-            a = a - 5;
+        case 'A':
+            //turn AA off
+            antiAlias = false;
             break;
-        case 's':
-            //second arm angle increase
-            b = b + 5;
+            
+        case 'i':
+            //turn AA on
+            position0[0] += 1.00;
             break;
-        case 'x':
-            //second arm angle decrease
-            b = b - 5;
+        case 'I':
+            //turn AA off
+            position0[0] -= 1.00;
             break;
-        case 'd':
-            //third arm angle increase
-            c = c + 5;
+        case 'o':
+            //turn AA on
+            position0[1] += 1.00;
             break;
-        case 'c':
-            //third arm angle decrease
-            c = c - 5;
+        case 'O':
+            //turn AA off
+            position0[1] -= 1.00;
             break;
-        case 'q':
-            LightPos[0] = LightPos[0] + pos;
+        case 'p':
+            //turn AA on
+            position0[2] += 1.00;
             break;
-        case 'Q':
-            LightPos[0] = LightPos[0] - pos;
-            break;
-        case 'w':
-            LightPos[1] = LightPos[1] + pos;
-            break;
-        case 'W':
-            LightPos[1] = LightPos[1] - pos;
-            break;
-        case 'e':
-            LightPos[2] = LightPos[2] + pos;
-            break;
-        case 'E':
-            LightPos[2] = LightPos[2] - pos;
+        case 'P':
+            //turn AA off
+            position0[2] -= 1.00;
             break;
     }
+    
+    printf("light pos %f,%f,%f\n", position0[0], position0[1], position0[2]);
 }
 
 void keyboardSpecial(int key, int x, int y) {
@@ -720,17 +770,20 @@ void reshape(int w, int h);
 bool loadMesh(const char * filename);
 void init()
 {
+    // Lighting
+    glClearColor (0.0, 0.0, 0.0, 0.0);
+    
+    
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    
+    
+
+    
     // SCENE
     
-    glDisable( GL_LIGHTING );
-    glEnable( GL_LIGHT0 );
-    glEnable(GL_COLOR_MATERIAL);
+    //glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_NORMALIZE);
-    
-//    int MatSpec [4] = {1,1,1,1};
-//    glMaterialiv(GL_FRONT_AND_BACK,GL_SPECULAR,MatSpec);
-//    glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,10);
-    
     
     // Enable Depth test
     glEnable( GL_DEPTH_TEST );
@@ -751,7 +804,7 @@ void init()
     
     // Initialize scene
     worldLimitX = 8;
-    worldLimitY = 4.5;
+    worldLimitY = 3;
     
     // Initialize player
     player.pos = glm::vec3(-2,0,0);
@@ -946,7 +999,7 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
     
     // couches du framebuffer utilisees par l'application
-    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH );
+    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_DEPTH );
     
     // position et taille de la fenetre
     glutInitWindowPosition(200, 100);
@@ -986,9 +1039,7 @@ int main(int argc, char** argv)
 void displayInternal(void)
 {
     // Effacer tout
-    glClearColor (0.0, 0.0, 0.0, 0.0);
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z
-    
     
     glLoadIdentity();  // repere camera
     

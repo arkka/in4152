@@ -104,11 +104,14 @@ unsigned int screenHeight = 800;  // screen height
 
 
 // Light pos
-GLfloat position0[] = {5.0, 5.0, 10.0, 0.0};
-GLfloat diffuse0[] = {1.0, 1.0, 1.0, 1.0}; // Id term - Red
-GLfloat specular0[] = {1.0, 1.0, 1.0, 1.0}; // Is term - White
-GLfloat ambient0[] = {0.1, 0.1, 0.1, 1.0}; // Ia term - Gray
-GLfloat shininess0[] = { 50.0 };
+//GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
+GLfloat lightPosition[]= { 5.0f, 5.0f, 10.0f, 1.0f };
+GLfloat lightDiffuse[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
+GLfloat lightShininess[] = { 50.0 };
+
+GLfloat globalAmbient[] = { 0.2, 0.2, 0.2, 1.0 };
 
 std::vector<float> MeshVertices;
 std::vector<unsigned int> MeshTriangles;
@@ -128,6 +131,8 @@ bool isBoss = false;
 
 // Options
 bool antiAlias = false;
+GLfloat	xrot;				// X Rotation
+GLfloat	yrot;				// Y Rotation
 
 
 // Texture
@@ -187,10 +192,6 @@ struct Material matRedBullet {
     0.25 // n
 };
 
-bool diffuse = false;
-bool emissive = false;
-bool specular = false;
-
 ////////// MATERIAL
 void setMaterial(struct Material mat) {
     glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
@@ -199,27 +200,25 @@ void setMaterial(struct Material mat) {
     glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
 }
 
-int LoadGLTextures()                                    // Load Bitmaps And Convert To Textures
+GLuint loadTexture(const char* texture)                                    // Load Bitmaps And Convert To Textures
 {
     /* load an image file directly as a new OpenGL texture */
-    texture[0] = SOIL_load_OGL_texture
+    GLuint textureId = SOIL_load_OGL_texture
     (
-     "textures/test.bmp",
+     texture,
      SOIL_LOAD_AUTO,
      SOIL_CREATE_NEW_ID,
-     SOIL_FLAG_INVERT_Y
+     SOIL_FLAG_MIPMAPS
      );
     
-    if(texture[0] == 0)
-        return false;
+    glBindTexture( GL_TEXTURE_2D, textureId );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glBindTexture( GL_TEXTURE_2D, 0 );
     
-    
-    // Typical Texture Generation Using Data From The Bitmap
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    
-    return true;                                        // Return Success
+    return textureId;
 }
 
 ////////// Terrain
@@ -484,14 +483,9 @@ void drawCoordSystem(float length=1)
 
 void drawLight() {
     glPushMatrix();
-    glTranslatef(position0[0], position0[1], position0[2]);
-    
-    setMaterial(matGold);
+    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
     glutSolidSphere(1,10,10);
-    
     glPopMatrix();
-
-    
 }
 
 void drawSky() {
@@ -675,7 +669,7 @@ void drawEnemies()
             
             // Draw
             glPushMatrix();
-            setMaterial(matChrome);
+            //setMaterial(matChrome);
             
             glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
             // Seamless rotation
@@ -709,7 +703,10 @@ void drawPlayer()
     player.move = moveVec[1];
 
     glPushMatrix();
-    setMaterial(matGold);
+    //setMaterial(matGold);
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texture[0] );
+    
     glTranslated(player.pos.x, player.pos.y, 0);
     
     // Seamless player rotation
@@ -721,7 +718,7 @@ void drawPlayer()
     else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
     
     // Draw object
-    glutSolidTeapot(0.2);
+    glutSolidTeapot(1);
     
 //    
 //    
@@ -804,6 +801,53 @@ void drawMesh()
     }
 }
 
+void drawCube(){
+    glPushMatrix();
+    
+    glRotated(xrot, 1, 0, 0);
+    glRotated(yrot, 0, 1, 0);
+    xrot+=1;
+    yrot+=1;
+    
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    
+    glBegin(GL_QUADS);
+    // Front Face
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f,  1.0f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 5.0f, -0.5f,  1.0f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 5.0f,  0.5f,  1.0f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f,  0.5f,  1.0f);  // Top Left Of The Texture and Quad
+    
+    // Back Face
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
+    // Top Face
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
+    // Bottom Face
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Top Left Of The Texture and Quad
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
+    // Right face
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Top Left Of The Texture and Quad
+    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
+    // Left Face
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
+    glEnd();
+     
+    glPopMatrix();
+}
+
 
 void spawnEnemy() {
     struct Enemy enemy {
@@ -825,21 +869,28 @@ void spawnEnemy() {
 
 void display( )
 {
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
+    
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);   // Specular
+    glLightfv(GL_LIGHT0, GL_SHININESS, lightShininess);   // Specular
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
+    
+    
+
     
     // Light
-    glLightfv(GL_LIGHT0, GL_POSITION, position0);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-    drawLight();
-
-    // Options
-    if(antiAlias) {
-        printf("ANTI ALIAS: ON\n");
-        glEnable(GL_MULTISAMPLE_ARB);
-    }
+    //drawLight();
     
+    if(!player.isDead) drawPlayer();
+    //drawCube();
+    
+    
+    /*
+    
+    
+
     // Game Logic
     
     // normal mobs
@@ -862,10 +913,11 @@ void display( )
     // Draw Units
     //drawCoordSystem();
     
-    if(!player.isDead) drawPlayer();
+    
     
     drawEnemies();
     drawBullets();
+     */
     
     glFlush ();
     
@@ -946,31 +998,31 @@ void keyboard(unsigned char key, int x, int y)
             
         case 'i':
             //turn AA on
-            position0[0] += 1.00;
+            lightPosition[0] += 1.00;
             break;
         case 'I':
             //turn AA off
-            position0[0] -= 1.00;
+            lightPosition[0] -= 1.00;
             break;
         case 'o':
             //turn AA on
-            position0[1] += 1.00;
+            lightPosition[1] += 1.00;
             break;
         case 'O':
             //turn AA off
-            position0[1] -= 1.00;
+            lightPosition[1] -= 1.00;
             break;
         case 'p':
             //turn AA on
-            position0[2] += 1.00;
+            lightPosition[2] += 1.00;
             break;
         case 'P':
             //turn AA off
-            position0[2] -= 1.00;
+            lightPosition[2] -= 1.00;
             break;
     }
     
-    printf("light pos %f,%f,%f\n", position0[0], position0[1], position0[2]);
+    printf("light pos %f,%f,%f\n", lightPosition[0], lightPosition[1], lightPosition[2]);
 }
 
 void keyboardSpecial(int key, int x, int y) {
@@ -1052,38 +1104,22 @@ void reshape(int w, int h);
 bool loadMesh(const char * filename);
 void init()
 {
-    // Lighting
-    glClearColor (0.0, 0.0, 0.0, 0.0);
-    
-    
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     
     // Texture
-    if(!LoadGLTextures()) printf("Load  texture failed!!!!\n");
+    texture[0] = loadTexture("textures/yellow.bmp");
+    //if(!loadTexture(0, "textures/crate.bmp")) printf("Load  texture failed!!!!\n");
+    //if(!loadTexture(1, "textures/test.bmp")) printf("Load  texture failed!!!!\n");
     
-    
-    // SCENE
-    
-    //glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_NORMALIZE);
     
-    
-    // Enable texture 2d
-    glEnable(GL_TEXTURE_2D);
-    
-    // Enable Depth test
-    glEnable( GL_DEPTH_TEST );
-    
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
-    //Draw frontfacing polygons as filled
-    glPolygonMode(GL_FRONT,GL_FILL);
-    //draw backfacing polygons as outlined
-    glPolygonMode(GL_BACK, GL_FILL);
-    //glPolygonMode(GL_BACK, GL_LINE);
     glShadeModel(GL_SMOOTH);
-    
+    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    glClearDepth(1.0f);
+    glEnable( GL_DEPTH_TEST );
+    //glDepthFunc(GL_LEQUAL);
+    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     
     
     // MESHES

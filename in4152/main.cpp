@@ -40,9 +40,17 @@ struct Material {
     GLfloat Ka [4];
     GLfloat Kd[4];
     GLfloat Ks[4];
-    GLfloat e[4];
+    GLfloat Ke[4];
     GLfloat n;
 } Material;
+
+struct Mountain {
+    glm::vec3 pos;
+    float width;
+    float rot;
+    GLuint tex;
+    struct Material mat;
+};
 
 struct Player {
     glm::vec3 pos;
@@ -106,8 +114,8 @@ unsigned int screenHeight = 800;  // screen height
 
 // Light pos
 //GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
-GLfloat lightPosition[]= { 5.0f, 5.0f, 10.0f, 1.0f };
-GLfloat lightDiffuse[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat lightPosition[]= { 5.0f, 20.0f, 40.0f, 1.0f };
+GLfloat lightDiffuse[] = {1.0, 1.0, 0.0, 1.0};
 GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
 GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
 GLfloat lightShininess[] = { 50.0 };
@@ -120,8 +128,7 @@ std::vector<unsigned int> MeshTriangles;
 // Declare your own global variables here:
 
 // Generated terrain
-std::vector<glm::vec3> heightmap;
-std::vector<glm::vec3> basemap;
+std::vector<struct Mountain> mountains;
 
 // Game Logic
 
@@ -134,6 +141,7 @@ bool isBoss = false;
 bool antiAlias = false;
 GLfloat	xrot;				// X Rotation
 GLfloat	yrot;				// Y Rotation
+GLfloat mountainX = 0;
 
 
 
@@ -151,9 +159,33 @@ GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
 GLuint texSky, texWater, texGrass, texStone;
-GLuint	texArmy;
+GLuint	texWhite, texArmy, texGreen;
 
 // Material
+struct Material matArmy {
+    {1.000000, 1.000000, 1.000000}, // Ka
+    {0.640000, 0.640000, 0.640000}, // Kd
+    {0.5, 0.5, 0.5}, // Ks
+    {0.0, 0.0, 0.0, 1.0}, //Ke
+    0.1 // n
+};
+
+struct Material matStone {
+    {0.05375,	0.05,	0.06625}, // Ka
+    {0.18275,	0.17,	0.22525}, // Kd
+    {0.332741,	0.328634,	0.346435}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
+    0.4 // n
+};
+
+struct Material matGrass {
+    {0.0,	0.0,	0.0}, // Ka
+    {0.1,	0.35,	0.1}, // Kd
+    {0.45,	0.55,	0.45}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
+    0.25 // n
+};
+
 struct Material matCopper {
     {0.19225, 0.0735, 0.0225}, // Ka
     {0.7038, 0.27048, 0.0828}, // Kd
@@ -202,12 +234,16 @@ struct Material matRedBullet {
     0.25 // n
 };
 
+float randomRange(int min, int max) {
+    return rand() % (max - min + 1) + min;
+}
+
 ////////// MATERIAL
 void setMaterial(struct Material mat) {
     glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
     glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
     glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_EMISSION, mat.e);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_EMISSION, mat.Ke);
     glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
 }
 
@@ -232,88 +268,114 @@ GLuint loadTexture(const char* texture)                                    // Lo
     return textureId;
 }
 
-////////// Terrain
-//void generateMountain(glm::vec3 base, float width, float height) {
-//    
-//    glm::vec3 baseTemp = base;
-//    float widthTempt = width;
-//    float heightTemp = height;
-//    
-//    glBegin(GL_LINE_STRIP);
-//    for(float i=0;i<=360;i+=1)
-//    {
-//        baseTemp.x += heightTemp;
-//        baseTemp.y += heightTemp * sin(i * M_PI / 180.0f);
-//        
-//        printf("i: %d, x: %f, y: %f\n",i,baseTemp.x, baseTemp.y);
-//        
-//        glVertex3f(baseTemp.x,baseTemp.y,baseTemp.z);
-//    }
-//    glEnd();
-//    
-//    
-//    baseTemp = base;
-//    widthTempt = width;
-//    heightTemp = height - 0.01;
-//    
-//    glBegin(GL_LINE_STRIP);
-//    for(float i=0;i<=360;i+=1)
-//    {
-//        baseTemp.x += heightTemp;
-//        baseTemp.y += heightTemp * sin(i * M_PI / 180.0f);
-//        
-//        printf("i: %d, x: %f, y: %f\n",i,baseTemp.x, baseTemp.y);
-//        
-//        glVertex3f(baseTemp.x + 2,baseTemp.y,baseTemp.z);
-//    }
-//    glEnd();
-//
-//    
-//}
-void generateMountain(glm::vec3 peak, float width, float height) {
-    glm::vec3 start = glm::vec3(peak.x - width/2,0,0);
-    glm::vec3 end = glm::vec3(peak.x + width/2,0,0);
+void generateMountains(float start, float end) {
+    // big mountain
+
     
-    setMaterial(matCopper);
-    
-    glm::vec3 vert = start;
-    float widthTemp = width;
-    float heightTemp = height;
-    
-    glBegin(GL_QUAD_STRIP);
-    for(float i=0;i<=360;i+=1)
-    {
-        vert.x += heightTemp;
-        vert.y += heightTemp * sin(i * M_PI / 180.0f);
-            
-            
-        glVertex3f(vert.x, vert.y/10 * 1, vert.z + 2);
-        glVertex3f(vert.x, vert.y, vert.z);
-          
+    float width = 10;
+    for(int x = start;x<end;x++) {
+        if(randomRange(0, 100)>70) {
+            struct Mountain mountain {
+                glm::vec3(x,randomRange(7,10)/10,randomRange(-80,-60)),
+                width,
+                0,
+                texStone,
+                matStone
+            };
+            mountains.push_back(mountain);
+        }
+       
     }
-    glEnd();
-     
-}
-void generateMountainBase(float start, float end) {
-    // Mountain consists of three layers: large mountain, medium, and some small/hills
     
-    /*
-    for(int i=start; i<end; i++)
-    {
-        glm::vec3 base = glm::vec3((-10+(i+1)*3.0),0.0,(-10+(i+1)*3.0));
-        basemap.push_back(base);
-        generateMountain(base);
+    // medium mountain
+    width = 7;
+    for(int x = start;x<end;x++) {
+        if(randomRange(0, 100)>70) {
+            struct Mountain mountain {
+                glm::vec3(x,randomRange(2,6)/10,randomRange(-50,-10)),
+                width,
+                0,
+                texStone,
+                matStone
+            };
+            mountains.push_back(mountain);
+        }
         
     }
-    */
+
     
-    glm::vec3 peak = glm::vec3(0.0,2.0,0);
+
+}
+void drawMountain(glm::vec3 peak, float width, GLuint texId) {
+    glm::vec3 start = glm::vec3(peak.x - width/2,0,peak.z);
+    glm::vec3 end = glm::vec3(peak.x + width/2,0,peak.z);
+    glm::vec3 distance = end - start;
     
-    // big
-    generateMountain(peak, 2, 0.02);
+    float sliceX = distance.x / 360;
     
-    // medium
-    //generateMountain(base, 2, 0.01);
+    glm::vec3 vert = start;
+    
+    glPushMatrix();
+    //glRotated(xrot, 1, 0, 0);
+    //xrot++;
+    //glRotated(45, 0, 1, 0);
+    //yrot++;
+    
+    
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texId );
+    //setMaterial(matStone);
+    
+    int slice = 4;
+
+    for(int curSlice = 0; curSlice<slice; curSlice++){
+        vert = start;
+    
+        glBegin(GL_QUAD_STRIP);
+        for(float i=0;i<=360;i+=1)
+        {
+            vert.x += sliceX;
+            vert.y += (sliceX * sin(i * M_PI / 180.0f)) * peak.y;
+            
+            float nextX = vert.x + sliceX;
+            float nextY = vert.y * (1 - (curSlice+1)/slice);
+            float nextZ = vert.z - ((curSlice+1)/slice) * 5;
+            
+            //glBegin(GL_QUADS);
+            glTexCoord2f((sliceX*i/distance.x),1); glVertex3f(vert.x, vert.y, vert.z);
+            glTexCoord2f((sliceX*i/distance.x),0); glVertex3f(vert.x, nextY, nextZ);
+            
+            //glTexCoord2f(1.0, 0.0); glVertex3f(vert.x+1, nextY, nextZ);
+            //glTexCoord2f(1.0, 1.0); glVertex3f(vert.x+1, vert.y, vert.z);
+            
+            //glEnd();
+            
+            //num++;
+        }
+        glEnd();
+    }
+    
+    glDisable( GL_TEXTURE_2D );
+    
+    glEnd();
+    glPopMatrix();
+}
+void drawMountains() {
+    // Mountain consists of three layers: large mountain, medium, and some small/hills
+    
+    glPushMatrix();
+    mountainX-= 0.01;
+    glTranslated(mountainX, -1, 0);
+
+    for(int i=0;i<mountains.size();i++) {
+        glPushMatrix();
+        glRotated(mountains[i].rot, 0, 1, 0);
+        drawMountain(mountains[i].pos, mountains[i].width, mountains[i].tex);
+        glPopMatrix();
+    }
+    
+    glPopMatrix();
+    
 }
 
 
@@ -419,9 +481,7 @@ void updatePlayerMouseMovement() {
     }
 }
 
-float randomRange(int min, int max) {
-    return rand() % (max - min + 1) + min;
-}
+
 
 bool checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)
 {
@@ -509,43 +569,39 @@ void drawSky() {
     //setMaterial(matChrome);
     
     glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 0.0f, -10.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 0.0f, -10.0f);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, 5.0f, -10.0f);
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, 5.0f, -10.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, -1.0f, -100.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, -1.0f, -100.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 5.0f, -100.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 5.0f, -100.0f);
     glEnd();
     
     
     //glutSolidTeapot(2);
+    
+    glDisable(GL_TEXTURE_2D);
     
     glPopMatrix();
     glPopAttrib();
 }
 
 void drawTerrain() {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_COLOR);
-    glColor3f(1,1,0);
-    
-    //setMaterial(matRuby);
-    
     glPushMatrix();
+    
+    
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texGrass );
+    setMaterial(matStone);
     
     
     glBegin(GL_QUADS);
     // front
-    glVertex3f(-10.0f, 2.0f, -2.0f);
-    glVertex3f(10.0f, 2.0f, -2.0f);
-    glVertex3f(10.0f, 0.0f, -2.0f);
-    glVertex3f(-10.0f, 0.0f, -2.0f);
-    
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 2.0f, -2.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(10.0f, 2.0f, -2.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(10.0f, 0.0f, -2.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, 0.0f, -2.0f);
     glEnd();
     
-    
     glPopMatrix();
-    glPopAttrib();
-
 }
 
 void drawWater() {
@@ -683,7 +739,7 @@ void drawEnemies()
             // Draw
             glPushMatrix();
             glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texArmy );
+            glBindTexture( GL_TEXTURE_2D, texWhite );
             setMaterial(matChrome);
             
             glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
@@ -708,32 +764,35 @@ void drawEnemies()
 
 void drawPlayer()
 {
-    // Movement
-    updatePlayerMouseMovement();
-    std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-    player.pos = moveVec[0];
-    player.move = moveVec[1];
+    if(!player.isDead) {
+        // Movement
+        updatePlayerMouseMovement();
+        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+        player.pos = moveVec[0];
+        player.move = moveVec[1];
+        
+        // TEXTURE AND MATERIAL
+        glPushMatrix();
+        glEnable( GL_TEXTURE_2D );
+        glBindTexture( GL_TEXTURE_2D, texArmy );
+        setMaterial(matChrome);
+        
+        // Apply movement
+        glTranslated(player.pos.x, player.pos.y, 0);
+        
+        // Apply seamless rotation
+        glRotatef(player.angle, 0, 0, 1);
+        if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
+        else if (player.angle > 135) glRotatef(180, 1, 0, 0);
+        
+        if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
+        else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
+        
+        glutSolidTeapot(0.2);
+        
+        glPopMatrix();
+    }
     
-    // TEXTURE AND MATERIAL
-    glPushMatrix();
-    glEnable( GL_TEXTURE_2D );
-    glBindTexture( GL_TEXTURE_2D, texArmy );
-    setMaterial(matChrome);
-    
-    // Apply movement
-    glTranslated(player.pos.x, player.pos.y, 0);
-    
-    // Apply seamless rotation
-    glRotatef(player.angle, 0, 0, 1);
-    if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
-    else if (player.angle > 135) glRotatef(180, 1, 0, 0);
-    
-    if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
-    else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
-    
-    glutSolidTeapot(0.2);
-    
-    glPopMatrix();
 }
 
 void drawMesh()
@@ -872,15 +931,15 @@ void display( )
     
     // Environments
     drawSky();
-    //generateMountainBase(-5,5);
+    drawMountains();
     //drawTerrain();
     //drawWater();
     //drawCube();
 
     // Units
-//    if(!player.isDead) drawPlayer();
-//    drawEnemies();
-//    drawBullets();
+    drawPlayer();
+    drawEnemies();
+    drawBullets();
     
     
     glFlush ();
@@ -1072,9 +1131,13 @@ void init()
     glEnable(GL_LIGHT0);
     
     // Texture
+    texWhite = loadTexture("textures/white.bmp");
+    texGreen = loadTexture("textures/green.bmp");
+    
     texSky = loadTexture("textures/sky.jpg");
     texArmy = loadTexture("textures/army.bmp");
-    
+    texStone = loadTexture("textures/stone.bmp");
+    texGrass = loadTexture("textures/grass.bmp");
     
     glEnable(GL_NORMALIZE);
     
@@ -1086,12 +1149,16 @@ void init()
     //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     
     
+    
     // MESHES
     loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
     
     // Initialize scene
     worldLimitX = 8;
     worldLimitY = 3;
+    
+    // Iniialize Mountains
+    generateMountains(-worldLimitX, worldLimitX*20);
     
     // Initialize player
     player.pos = glm::vec3(-2,0,0);

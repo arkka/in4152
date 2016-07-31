@@ -136,8 +136,7 @@ GLfloat	xrot;				// X Rotation
 GLfloat	yrot;				// Y Rotation
 
 
-// Texture
-GLuint	texture[5];
+
 
 // Mesh
 float x1l, x2l, y1l, y2l, z1l, z2l;
@@ -149,6 +148,10 @@ GLfloat winX, winY; //variables to hold screen x,y,z coordinates
 GLfloat winZ = -5; // Default win Z coord
 GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
+
+// Texture
+GLuint texSky, texWater, texGrass, texStone;
+GLuint	texArmy;
 
 // Material
 struct Material matCopper {
@@ -498,22 +501,24 @@ void drawLight() {
 
 void drawSky() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
     glDisable(GL_LIGHTING);
-    glEnable(GL_COLOR);
     
     glPushMatrix();
-    glColor3d(0.52,0.8,0.92);
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texSky );
+    //setMaterial(matChrome);
+    
     glBegin(GL_QUADS);
-    glVertex3f(-10.0f, 0.0f, -10.0f);
-    glVertex3f( 10.0f, 0.0f, -10.0f);
-    glVertex3f( 10.0f, 5.0f, -10.0f);
-    glVertex3f(-10.0f, 5.0f, -10.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 0.0f, -10.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 0.0f, -10.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, 5.0f, -10.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, 5.0f, -10.0f);
     glEnd();
-
+    
+    
+    //glutSolidTeapot(2);
     
     glPopMatrix();
-    
     glPopAttrib();
 }
 
@@ -677,7 +682,9 @@ void drawEnemies()
             
             // Draw
             glPushMatrix();
-            //setMaterial(matChrome);
+            glEnable( GL_TEXTURE_2D );
+            glBindTexture( GL_TEXTURE_2D, texArmy );
+            setMaterial(matChrome);
             
             glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
             // Seamless rotation
@@ -701,23 +708,22 @@ void drawEnemies()
 
 void drawPlayer()
 {
-    // Mouse movement relative to player
+    // Movement
     updatePlayerMouseMovement();
-    // printf("%f\n", player.angle);
-    
-    // Update player object movement
     std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
     player.pos = moveVec[0];
     player.move = moveVec[1];
-
+    
+    // TEXTURE AND MATERIAL
     glPushMatrix();
     glEnable( GL_TEXTURE_2D );
-    glBindTexture( GL_TEXTURE_2D, texture[0] );
+    glBindTexture( GL_TEXTURE_2D, texArmy );
     setMaterial(matChrome);
     
+    // Apply movement
     glTranslated(player.pos.x, player.pos.y, 0);
     
-    // Seamless player rotation
+    // Apply seamless rotation
     glRotatef(player.angle, 0, 0, 1);
     if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
     else if (player.angle > 135) glRotatef(180, 1, 0, 0);
@@ -725,39 +731,7 @@ void drawPlayer()
     if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
     else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
     
-    // Draw object
-    glutSolidTeapot(1);
-    
-//    
-//    
-//    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
-//        
-//        
-//        x1l = MeshVertices[MeshTriangles[i + 1] * 3] - MeshVertices[MeshTriangles[i] * 3];
-//        y1l= MeshVertices[MeshTriangles[i + 1] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
-//        z1l = MeshVertices[MeshTriangles[i + 1] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
-//        
-//        x2l = MeshVertices[MeshTriangles[i + 2] * 3] - MeshVertices[MeshTriangles[i] * 3];
-//        y2l = MeshVertices[MeshTriangles[i + 2] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
-//        z2l = MeshVertices[MeshTriangles[i + 2] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
-//        
-//        glNormal3f(y1l * z2l - y2l * z1l, z1l * x2l - z2l * x1l, x1l * y2l - x2l * y1l);
-//        
-//        glBegin(GL_TRIANGLES);
-//        glVertex3f(MeshVertices[MeshTriangles[i]*3],
-//                   MeshVertices[MeshTriangles[i]*3+1],
-//                   MeshVertices[MeshTriangles[i]*3+2]
-//                   );
-//        glVertex3f(MeshVertices[MeshTriangles[i+1]*3],
-//                   MeshVertices[MeshTriangles[i+1]*3 + 1],
-//                   MeshVertices[MeshTriangles[i+1]*3 + 2]
-//                   );
-//        glVertex3f(MeshVertices[MeshTriangles[i+2]*3],
-//                   MeshVertices[MeshTriangles[i+2]*3 + 1],
-//                   MeshVertices[MeshTriangles[i+2]*3 + 2]
-//                   );
-//        glEnd();
-//    }
+    glutSolidTeapot(0.2);
     
     glPopMatrix();
 }
@@ -817,7 +791,7 @@ void drawCube(){
     xrot+=1;
     yrot+=1;
     
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    glBindTexture(GL_TEXTURE_2D, texArmy);
     
     glBegin(GL_QUADS);
     // Front Face
@@ -877,55 +851,37 @@ void spawnEnemy() {
 
 void display( )
 {
-    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
     
+    // Game Logic
+    if(enemies.size()< maxEnemies && !isBoss) {
+        spawnEnemy();
+    }
+    
+    
+    // End of Game logic
+    
+    // Light
+    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
     glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);   // Specular
     glLightfv(GL_LIGHT0, GL_SHININESS, lightShininess);   // Specular
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
     
-    
-
-    
-    // Light
-    //drawLight();
-    
-    if(!player.isDead) drawPlayer();
-    //drawCube();
-    
-    
-    /*
-    
-    
-
-    // Game Logic
-    
-    // normal mobs
-    if(enemies.size()< maxEnemies && !isBoss) {
-        spawnEnemy();
-    }
-    
-    
-    
-    
-    
-    // End of Game Logic
-    
-    // Draw Environments
-    drawSky();
-    generateMountainBase(-5,5);
-    //drawTerrain();
-    //drawWater();
-    
-    // Draw Units
     //drawCoordSystem();
     
+    // Environments
+    drawSky();
+    //generateMountainBase(-5,5);
+    //drawTerrain();
+    //drawWater();
+    //drawCube();
+
+    // Units
+//    if(!player.isDead) drawPlayer();
+//    drawEnemies();
+//    drawBullets();
     
-    
-    drawEnemies();
-    drawBullets();
-     */
     
     glFlush ();
     
@@ -1116,9 +1072,9 @@ void init()
     glEnable(GL_LIGHT0);
     
     // Texture
-    texture[0] = loadTexture("textures/yellow.bmp");
-    //if(!loadTexture(0, "textures/crate.bmp")) printf("Load  texture failed!!!!\n");
-    //if(!loadTexture(1, "textures/test.bmp")) printf("Load  texture failed!!!!\n");
+    texSky = loadTexture("textures/sky.jpg");
+    texArmy = loadTexture("textures/army.bmp");
+    
     
     glEnable(GL_NORMALIZE);
     

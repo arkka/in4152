@@ -40,6 +40,7 @@ struct Material {
     GLfloat Ka [4];
     GLfloat Kd[4];
     GLfloat Ks[4];
+    GLfloat e[4];
     GLfloat n;
 } Material;
 
@@ -154,6 +155,7 @@ struct Material matCopper {
     {0.19225, 0.0735, 0.0225}, // Ka
     {0.7038, 0.27048, 0.0828}, // Kd
     {0.256777, 0.137622, 0.086014}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.1 // n
 };
 
@@ -161,6 +163,7 @@ struct Material matChrome {
     {0.25, 0.25,	0.25}, // Ka
     {0.4,	0.4,	0.4}, // Kd
     {0.774597,	0.774597,	0.774597}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.6 // n
 };
 
@@ -168,6 +171,7 @@ struct Material matRuby {
     {0.1745, 0.01175,	0.01175}, // Ka
     {0.61424,	0.04136,	0.04136}, // Kd
     {0.727811,	0.626959,	0.626959}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.6 // n
 };
 
@@ -175,6 +179,7 @@ struct Material matGold {
     {0.24725,	0.1995,	0.0745}, // Ka
     {0.75164,	0.60648,	0.22648}, // Kd
     {0.628281,	0.555802,	0.366065}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.4 // n
 };
 
@@ -182,6 +187,7 @@ struct Material matGreenBullet {
     {0.0,	0.0,	0.0}, // Ka
     {0.1,	0.35,	0.1}, // Kd
     {0.45,	0.55,	0.45}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.25 // n
 };
 
@@ -189,6 +195,7 @@ struct Material matRedBullet {
     {0.0,	0.0,	0.0}, // Ka
     {0.5,	0.0,	0.0}, // Kd
     {0.7,	0.7,	0.7}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
     0.25 // n
 };
 
@@ -197,6 +204,7 @@ void setMaterial(struct Material mat) {
     glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
     glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
     glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_EMISSION, mat.e);
     glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
 }
 
@@ -703,9 +711,9 @@ void drawPlayer()
     player.move = moveVec[1];
 
     glPushMatrix();
-    //setMaterial(matGold);
     glEnable( GL_TEXTURE_2D );
     glBindTexture( GL_TEXTURE_2D, texture[0] );
+    setMaterial(matChrome);
     
     glTranslated(player.pos.x, player.pos.y, 0);
     

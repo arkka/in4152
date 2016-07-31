@@ -65,6 +65,18 @@ struct Player {
     
 };
 
+struct Boss {
+    glm::vec3 pos;
+    glm::vec3 move;
+    
+    float angle;
+    float acceleration;
+    
+    bool isDead;
+    int hp;
+    
+};
+
 struct Enemy {
     glm::vec3 pos;
     glm::vec3 move;
@@ -97,6 +109,7 @@ struct Bullet {
  */
 
 Player player;
+Boss boss;
 
 
 //////Predefined global variables
@@ -135,6 +148,7 @@ std::vector<struct Mountain> mountains;
 std::vector<struct Bullet> bullets;
 std::vector<struct Enemy> enemies;
 int maxEnemies = 5;
+int curEnemies = maxEnemies;
 bool isBoss = false;
 
 // Options
@@ -510,6 +524,15 @@ void fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float 
     bullets.push_back(bullet);
 }
 
+void spawnBoss() {
+    isBoss = true;
+    boss.isDead = false;
+    boss.hp = 20;
+    boss.pos = glm::vec3(randomRange(0, 15),randomRange(-15, 15),0);
+    boss.move = player.pos;
+}
+
+
 
 //function to draw coordinate axes with a certain length (1 as a default)
 void drawCoordSystem(float length=1)
@@ -629,13 +652,14 @@ void drawBullets() {
             // enemy got hit ?
             if(bullets[i].type == 0) {
                 for (int j=0; j < enemies.size(); j++) {
-                    if(checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.3, 0.3)) {
+                    if(!enemies[j].isDead && checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.3, 0.3)) {
                         enemies[j].hp -= 1;
                         bullets[i].isDestroyed = true;
                         
                         if(enemies[j].hp<=0) {
                             enemies[j].hp = 0;
                             enemies[j].isDead = true;
+                            curEnemies--;
                         }
                         printf("Enemy HP: %d/%d\n",enemies[j].hp, 5);
                         break;  
@@ -692,10 +716,11 @@ void drawEnemies()
     for (int i=0; i < enemies.size(); i++) {
         
         // check collide with player
-        if(checkCollide(player.pos, 0.2, 0.2, enemies[i].pos, 0.2, 0.2)) {
+        if(!enemies[i].isDead && checkCollide(player.pos, 0.2, 0.2, enemies[i].pos, 0.2, 0.2)) {
             // Suicide bomb!
             player.isDead = true;
             enemies[i].isDead = true;
+            curEnemies--;
         }
         
         if(!enemies[i].isDead) {
@@ -789,6 +814,42 @@ void drawPlayer()
         else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
         
         glutSolidTeapot(0.4);
+        
+        glPopMatrix();
+    }
+    
+}
+
+void drawBoss()
+{
+    if(!boss.isDead) {
+        // Movement
+        boss.move = player.pos;
+        std::vector<glm::vec3> moveVec = computeMovement(boss.pos, boss.move, false, boss.acceleration);
+        boss.pos = moveVec[0];
+        boss.move = moveVec[1];
+        
+        // Rotation Angle
+        boss.angle = computeAngle(glm::vec2(boss.pos.x, boss.pos.y), glm::vec2(player.pos.x, player.pos.y));
+
+        // TEXTURE AND MATERIAL
+        glPushMatrix();
+        glEnable( GL_TEXTURE_2D );
+        glBindTexture( GL_TEXTURE_2D, texArmy );
+        setMaterial(matChrome);
+        
+        // Apply movement
+        glTranslated(boss.pos.x, boss.pos.y, 0);
+        
+        // Apply seamless rotation
+        glRotatef(boss.angle, 0, 0, 1);
+        if(boss.angle > 45 && boss.angle <= 135)  glRotatef((boss.angle - 45) * 2, 1, 0, 0);
+        else if (boss.angle > 135) glRotatef(180, 1, 0, 0);
+        
+        if(boss.angle < -45 && boss.angle >= -135) glRotatef((boss.angle + 45) * -2, 1, 0, 0);
+        else if(boss.angle < -135) glRotatef(-180, 1, 0, 0);
+        
+        glutSolidTeapot(0.6);
         
         glPopMatrix();
     }
@@ -908,13 +969,25 @@ void spawnEnemy() {
 
 
 
+
 void display( )
 {
     
     // Game Logic
-    if(enemies.size()< maxEnemies && !isBoss) {
+    
+    curEnemies = 0;
+    for(int i=0;i<enemies.size();i++){
+        if(enemies[i].isDead==false) curEnemies++;
+    }
+    
+    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
+        spawnBoss();
+    }
+    
+    if(enemies.size() < maxEnemies && boss.isDead) {
         spawnEnemy();
     }
+    
     
     
     // End of Game logic
@@ -943,6 +1016,7 @@ void display( )
     
     drawPlayer();
     drawEnemies();
+    drawBoss();
     drawBullets();
     
     
@@ -1051,6 +1125,10 @@ void keyboard(unsigned char key, int x, int y)
             //turn AA off
             lightPosition[2] -= 1.00;
             break;
+        case 'b':
+            spawnBoss();
+            break;
+
     }
     
     printf("light pos %f,%f,%f\n", lightPosition[0], lightPosition[1], lightPosition[2]);
@@ -1174,6 +1252,14 @@ void init()
     player.acceleration = 0.5;
     player.hp = 20;
     player.isDead = false;
+    
+    boss.pos = glm::vec3(randomRange(0, 15),randomRange(-15, 15),0);
+    boss.move = player.pos;
+    boss.angle = 0;
+    boss.acceleration = 0.02;
+    boss.isDead = true;
+    boss.hp = 20;
+   
 }
 
 

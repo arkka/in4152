@@ -112,6 +112,11 @@ std::vector<float> MeshVertices;
 std::vector<unsigned int> MeshTriangles;
 
 // Declare your own global variables here:
+
+// Generated terrain
+std::vector<glm::vec3> heightmap;
+std::vector<glm::vec3> basemap;
+
 // Game Logic
 
 std::vector<struct Bullet> bullets;
@@ -180,6 +185,97 @@ bool diffuse = false;
 bool emissive = false;
 bool specular = false;
 
+////////// MATERIAL
+void setMaterial(struct Material mat) {
+    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
+    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
+}
+
+////////// Terrain
+//void generateMountain(glm::vec3 base, float width, float height) {
+//    
+//    glm::vec3 baseTemp = base;
+//    float widthTempt = width;
+//    float heightTemp = height;
+//    
+//    glBegin(GL_LINE_STRIP);
+//    for(float i=0;i<=360;i+=1)
+//    {
+//        baseTemp.x += heightTemp;
+//        baseTemp.y += heightTemp * sin(i * M_PI / 180.0f);
+//        
+//        printf("i: %d, x: %f, y: %f\n",i,baseTemp.x, baseTemp.y);
+//        
+//        glVertex3f(baseTemp.x,baseTemp.y,baseTemp.z);
+//    }
+//    glEnd();
+//    
+//    
+//    baseTemp = base;
+//    widthTempt = width;
+//    heightTemp = height - 0.01;
+//    
+//    glBegin(GL_LINE_STRIP);
+//    for(float i=0;i<=360;i+=1)
+//    {
+//        baseTemp.x += heightTemp;
+//        baseTemp.y += heightTemp * sin(i * M_PI / 180.0f);
+//        
+//        printf("i: %d, x: %f, y: %f\n",i,baseTemp.x, baseTemp.y);
+//        
+//        glVertex3f(baseTemp.x + 2,baseTemp.y,baseTemp.z);
+//    }
+//    glEnd();
+//
+//    
+//}
+void generateMountain(glm::vec3 peak, float width, float height) {
+    glm::vec3 start = glm::vec3(peak.x - width/2,0,0);
+    glm::vec3 end = glm::vec3(peak.x + width/2,0,0);
+    
+    setMaterial(matCopper);
+    
+    glm::vec3 vert = start;
+    float widthTemp = width;
+    float heightTemp = height;
+    
+    glBegin(GL_QUAD_STRIP);
+    for(float i=0;i<=360;i+=1)
+    {
+        vert.x += heightTemp;
+        vert.y += heightTemp * sin(i * M_PI / 180.0f);
+            
+            
+        glVertex3f(vert.x, vert.y/10 * 1, vert.z + 2);
+        glVertex3f(vert.x, vert.y, vert.z);
+          
+    }
+    glEnd();
+     
+}
+void generateMountainBase(float start, float end) {
+    // Mountain consists of three layers: large mountain, medium, and some small/hills
+    
+    /*
+    for(int i=start; i<end; i++)
+    {
+        glm::vec3 base = glm::vec3((-10+(i+1)*3.0),0.0,(-10+(i+1)*3.0));
+        basemap.push_back(base);
+        generateMountain(base);
+        
+    }
+    */
+    
+    glm::vec3 peak = glm::vec3(0.0,2.0,0);
+    
+    // big
+    generateMountain(peak, 2, 0.02);
+    
+    // medium
+    //generateMountain(base, 2, 0.01);
+}
 
 
 ////////// Movement
@@ -328,13 +424,6 @@ void fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float 
     bullets.push_back(bullet);
 }
 
-////////// Draw Functions
-void setMaterial(struct Material mat) {
-    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, mat.Ka);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
-    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
-}
 
 //function to draw coordinate axes with a certain length (1 as a default)
 void drawCoordSystem(float length=1)
@@ -398,6 +487,28 @@ void drawSky() {
 }
 
 void drawTerrain() {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_COLOR);
+    glColor3f(1,1,0);
+    
+    //setMaterial(matRuby);
+    
+    glPushMatrix();
+    
+    
+    glBegin(GL_QUADS);
+    // front
+    glVertex3f(-10.0f, 2.0f, -2.0f);
+    glVertex3f(10.0f, 2.0f, -2.0f);
+    glVertex3f(10.0f, 0.0f, -2.0f);
+    glVertex3f(-10.0f, 0.0f, -2.0f);
+    
+    glEnd();
+    
+    
+    glPopMatrix();
+    glPopAttrib();
 
 }
 
@@ -407,6 +518,7 @@ void drawWater() {
     
     //glEnable(GL_COLOR);
     //glColor3d(1,0,0);
+    
     glBegin(GL_QUADS);
     glVertex3f(-10.0f, -2.0f, -10.0f);
     glVertex3f( 10.0f, -2.0f, -10.0f);
@@ -511,8 +623,8 @@ void drawEnemies()
                 glm::vec3 distance = enemies[i].pos - collideWith.pos;
                 enemies[i].pos += distance * enemies[i].acceleration;
                 
-            } else if(enemies[i].type > 3) {
-                // This enemy follow player position.. kamikaze!
+            } else {
+                // This enemy follow player position..
                 
                 enemies[i].move = player.pos;
             }
@@ -713,7 +825,8 @@ void display( )
     // End of Game Logic
     
     // Draw Environments
-    //drawSky();
+    drawSky();
+    generateMountainBase(-5,5);
     //drawTerrain();
     //drawWater();
     
@@ -949,7 +1062,7 @@ void init()
     // Initialize player
     player.pos = glm::vec3(-2,0,0);
     player.move = player.pos;
-    player.acceleration = 0.25;
+    player.acceleration = 0.5;
     player.hp = 20;
     player.isDead = false;
 }

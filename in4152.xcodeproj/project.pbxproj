@@ -7,6 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C40842F31D4E157500F5E68F /* image_DXT.c in Sources */ = {isa = PBXBuildFile; fileRef = C40842E91D4E157500F5E68F /* image_DXT.c */; };
+		C40842F41D4E157500F5E68F /* image_DXT.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842EA1D4E157500F5E68F /* image_DXT.h */; };
+		C40842F51D4E157500F5E68F /* image_helper.c in Sources */ = {isa = PBXBuildFile; fileRef = C40842EB1D4E157500F5E68F /* image_helper.c */; };
+		C40842F61D4E157500F5E68F /* image_helper.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842EC1D4E157500F5E68F /* image_helper.h */; };
+		C40842F71D4E157500F5E68F /* SOIL.c in Sources */ = {isa = PBXBuildFile; fileRef = C40842ED1D4E157500F5E68F /* SOIL.c */; };
+		C40842F81D4E157500F5E68F /* SOIL.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842EE1D4E157500F5E68F /* SOIL.h */; };
+		C40842F91D4E157500F5E68F /* stb_image_aug.c in Sources */ = {isa = PBXBuildFile; fileRef = C40842EF1D4E157500F5E68F /* stb_image_aug.c */; };
+		C40842FA1D4E157500F5E68F /* stb_image_aug.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842F01D4E157500F5E68F /* stb_image_aug.h */; };
+		C40842FB1D4E157500F5E68F /* stbi_DDS_aug_c.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842F11D4E157500F5E68F /* stbi_DDS_aug_c.h */; };
+		C40842FC1D4E157500F5E68F /* stbi_DDS_aug.h in Headers */ = {isa = PBXBuildFile; fileRef = C40842F21D4E157500F5E68F /* stbi_DDS_aug.h */; };
 		C4F4B7AD1D2DC72300B6C0F5 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4F4B7AC1D2DC72300B6C0F5 /* main.cpp */; };
 		C4F4B7B41D2DC73B00B6C0F5 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C4F4B7B31D2DC73B00B6C0F5 /* OpenGL.framework */; };
 		C4F4B7B61D2DC74200B6C0F5 /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C4F4B7B51D2DC74200B6C0F5 /* GLUT.framework */; };
@@ -25,6 +35,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C40842E91D4E157500F5E68F /* image_DXT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = image_DXT.c; sourceTree = "<group>"; };
+		C40842EA1D4E157500F5E68F /* image_DXT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image_DXT.h; sourceTree = "<group>"; };
+		C40842EB1D4E157500F5E68F /* image_helper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = image_helper.c; sourceTree = "<group>"; };
+		C40842EC1D4E157500F5E68F /* image_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image_helper.h; sourceTree = "<group>"; };
+		C40842ED1D4E157500F5E68F /* SOIL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SOIL.c; sourceTree = "<group>"; };
+		C40842EE1D4E157500F5E68F /* SOIL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SOIL.h; sourceTree = "<group>"; };
+		C40842EF1D4E157500F5E68F /* stb_image_aug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stb_image_aug.c; sourceTree = "<group>"; };
+		C40842F01D4E157500F5E68F /* stb_image_aug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image_aug.h; sourceTree = "<group>"; };
+		C40842F11D4E157500F5E68F /* stbi_DDS_aug_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stbi_DDS_aug_c.h; sourceTree = "<group>"; };
+		C40842F21D4E157500F5E68F /* stbi_DDS_aug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stbi_DDS_aug.h; sourceTree = "<group>"; };
+		C40842FE1D4E178700F5E68F /* test.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; path = test.bmp; sourceTree = "<group>"; };
 		C4F4B7A91D2DC72300B6C0F5 /* in4152 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = in4152; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4F4B7AC1D2DC72300B6C0F5 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		C4F4B7B31D2DC73B00B6C0F5 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -48,6 +69,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C40842FD1D4E178700F5E68F /* textures */ = {
+			isa = PBXGroup;
+			children = (
+				C40842FE1D4E178700F5E68F /* test.bmp */,
+			);
+			path = textures;
+			sourceTree = "<group>";
+		};
 		C4F4B7A01D2DC72300B6C0F5 = {
 			isa = PBXGroup;
 			children = (
@@ -69,6 +98,17 @@
 		C4F4B7AB1D2DC72300B6C0F5 /* in4152 */ = {
 			isa = PBXGroup;
 			children = (
+				C40842FD1D4E178700F5E68F /* textures */,
+				C40842E91D4E157500F5E68F /* image_DXT.c */,
+				C40842EA1D4E157500F5E68F /* image_DXT.h */,
+				C40842EB1D4E157500F5E68F /* image_helper.c */,
+				C40842EC1D4E157500F5E68F /* image_helper.h */,
+				C40842ED1D4E157500F5E68F /* SOIL.c */,
+				C40842EE1D4E157500F5E68F /* SOIL.h */,
+				C40842EF1D4E157500F5E68F /* stb_image_aug.c */,
+				C40842F01D4E157500F5E68F /* stb_image_aug.h */,
+				C40842F11D4E157500F5E68F /* stbi_DDS_aug_c.h */,
+				C40842F21D4E157500F5E68F /* stbi_DDS_aug.h */,
 				C4F4B7BB1D2DD34B00B6C0F5 /* David.obj */,
 				C4F4B7B71D2DC80E00B6C0F5 /* argumentParser.h */,
 				C4F4B7B91D2DC80E00B6C0F5 /* matrix.h */,
@@ -85,6 +125,12 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C40842FC1D4E157500F5E68F /* stbi_DDS_aug.h in Headers */,
+				C40842FA1D4E157500F5E68F /* stb_image_aug.h in Headers */,
+				C40842FB1D4E157500F5E68F /* stbi_DDS_aug_c.h in Headers */,
+				C40842F81D4E157500F5E68F /* SOIL.h in Headers */,
+				C40842F61D4E157500F5E68F /* image_helper.h in Headers */,
+				C40842F41D4E157500F5E68F /* image_DXT.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +191,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C40842F51D4E157500F5E68F /* image_helper.c in Sources */,
+				C40842F91D4E157500F5E68F /* stb_image_aug.c in Sources */,
+				C40842F31D4E157500F5E68F /* image_DXT.c in Sources */,
+				C40842F71D4E157500F5E68F /* SOIL.c in Sources */,
 				C4F4B7AD1D2DC72300B6C0F5 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -188,6 +238,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -225,6 +277,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -236,6 +290,7 @@
 			buildSettings = {
 				HEADER_SEARCH_PATHS = /usr/local/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -245,6 +300,7 @@
 			buildSettings = {
 				HEADER_SEARCH_PATHS = /usr/local/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

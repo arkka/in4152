@@ -20,12 +20,14 @@
 #include <GL/gl.h>
 #endif
 
+#include "SOIL.h"
 #include <glm/glm.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include "trackball.h"
 #include "argumentParser.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -127,6 +129,10 @@ bool isBoss = false;
 // Options
 bool antiAlias = false;
 
+
+// Texture
+GLuint	texture[5];
+
 // Mesh
 float x1l, x2l, y1l, y2l, z1l, z2l;
 
@@ -191,6 +197,29 @@ void setMaterial(struct Material mat) {
     glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, mat.Kd);
     glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR, mat.Ks);
     glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, mat.n * 128);
+}
+
+int LoadGLTextures()                                    // Load Bitmaps And Convert To Textures
+{
+    /* load an image file directly as a new OpenGL texture */
+    texture[0] = SOIL_load_OGL_texture
+    (
+     "textures/test.bmp",
+     SOIL_LOAD_AUTO,
+     SOIL_CREATE_NEW_ID,
+     SOIL_FLAG_INVERT_Y
+     );
+    
+    if(texture[0] == 0)
+        return false;
+    
+    
+    // Typical Texture Generation Using Data From The Bitmap
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    
+    return true;                                        // Return Success
 }
 
 ////////// Terrain
@@ -1030,13 +1059,18 @@ void init()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     
+    // Texture
+    if(!LoadGLTextures()) printf("Load  texture failed!!!!\n");
     
-
     
     // SCENE
     
     //glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_NORMALIZE);
+    
+    
+    // Enable texture 2d
+    glEnable(GL_TEXTURE_2D);
     
     // Enable Depth test
     glEnable( GL_DEPTH_TEST );

@@ -263,7 +263,6 @@ GLuint loadTexture(const char* texture)                                    // Lo
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glBindTexture( GL_TEXTURE_2D, 0 );
     
     return textureId;
 }
@@ -314,17 +313,15 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
     float sliceX = distance.x / 360;
     
     glm::vec3 vert = start;
-    
-    glPushMatrix();
+
     //glRotated(xrot, 1, 0, 0);
     //xrot++;
     //glRotated(45, 0, 1, 0);
     //yrot++;
     
     
-    glEnable( GL_TEXTURE_2D );
-    glBindTexture( GL_TEXTURE_2D, texId );
-    //setMaterial(matStone);
+    glBindTexture( GL_TEXTURE_2D, texStone );
+    setMaterial(matStone);
     
     int slice = 4;
 
@@ -345,20 +342,10 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
             glTexCoord2f((sliceX*i/distance.x),1); glVertex3f(vert.x, vert.y, vert.z);
             glTexCoord2f((sliceX*i/distance.x),0); glVertex3f(vert.x, nextY, nextZ);
             
-            //glTexCoord2f(1.0, 0.0); glVertex3f(vert.x+1, nextY, nextZ);
-            //glTexCoord2f(1.0, 1.0); glVertex3f(vert.x+1, vert.y, vert.z);
-            
-            //glEnd();
-            
-            //num++;
         }
         glEnd();
     }
-    
-    glDisable( GL_TEXTURE_2D );
-    
-    glEnd();
-    glPopMatrix();
+
 }
 void drawMountains() {
     // Mountain consists of three layers: large mountain, medium, and some small/hills
@@ -451,31 +438,31 @@ void updatePlayerMouseMovement() {
         player.angle = computeAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         // Debug mouse angle
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        
-        // miring
-        glBegin(GL_LINES);
-        glColor3f(1,1,0);
-        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        glVertex3f(worldX,worldY,worldZ);
-        glEnd();
-        
-        
-        // y
-        glBegin(GL_LINES);
-        glColor3f(0,1,0);
-        glVertex3f(worldX,player.pos.y,player.pos.z);
-        glVertex3f(worldX,worldY,worldZ);
-        glEnd();
-        
-        // x
-        glBegin(GL_LINES);
-        glColor3f(1,0,0);
-        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        glVertex3f(worldX,player.pos.y,worldZ);
-        glEnd();
-        glPopAttrib();
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        
+//        // miring
+//        glBegin(GL_LINES);
+//        glColor3f(1,1,0);
+//        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+//        glVertex3f(worldX,worldY,worldZ);
+//        glEnd();
+//        
+//        
+//        // y
+//        glBegin(GL_LINES);
+//        glColor3f(0,1,0);
+//        glVertex3f(worldX,player.pos.y,player.pos.z);
+//        glVertex3f(worldX,worldY,worldZ);
+//        glEnd();
+//        
+//        // x
+//        glBegin(GL_LINES);
+//        glColor3f(1,0,0);
+//        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+//        glVertex3f(worldX,player.pos.y,worldZ);
+//        glEnd();
+//        glPopAttrib();
 
         
     }
@@ -642,7 +629,7 @@ void drawBullets() {
             // enemy got hit ?
             if(bullets[i].type == 0) {
                 for (int j=0; j < enemies.size(); j++) {
-                    if(checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.1, 0.1)) {
+                    if(checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.3, 0.3)) {
                         enemies[j].hp -= 1;
                         bullets[i].isDestroyed = true;
                         
@@ -657,7 +644,7 @@ void drawBullets() {
                 
             }
             // player got hit ?
-            else if(bullets[i].type == 1 && checkCollide(bullets[i].pos, 0.1, 0.1, player.pos, 0.1, 0.1)) {
+            else if(bullets[i].type == 1 && checkCollide(bullets[i].pos, 0.1, 0.1, player.pos, 0.4, 0.4)) {
                 player.hp -= 1;
                 bullets[i].isDestroyed = true;
                 
@@ -674,14 +661,27 @@ void drawBullets() {
             
             bullets[i].pos.x += bullets[i].acceleration * cos(bullets[i].angle * M_PI / 180.0f);
             bullets[i].pos.y += bullets[i].acceleration * sin(bullets[i].angle * M_PI / 180.0f);
-            
+           
             glPushMatrix();
+            
+            glEnable( GL_TEXTURE_2D );
+            glBindTexture( GL_TEXTURE_2D, texWhite );
+
+            
             if(bullets[i].type == 0) setMaterial(matGreenBullet);
             else if(bullets[i].type == 1) setMaterial(matRedBullet);
             
             glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
-            glutSolidCube(0.05);
+            glRotatef(bullets[i].angle,0,0,1);
             
+            glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.1f, -0.01f, 0.0f);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.1f, -0.01f, 0.0f);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.1f, 0.01f, 0.0f);
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.1f, 0.01f, 0.0f);
+            glEnd();
+
+
             glPopMatrix();
         }
     }
@@ -751,7 +751,7 @@ void drawEnemies()
             if(enemies[i].angle < -45 && enemies[i].angle >= -135) glRotatef((enemies[i].angle + 45) * -2, 1, 0, 0);
             else if(enemies[i].angle < -135) glRotatef(-180, 1, 0, 0);
             
-            glutSolidTeapot(0.1);
+            glutSolidTeapot(0.3);
             
             glPopMatrix();
         }
@@ -788,7 +788,7 @@ void drawPlayer()
         if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
         else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
         
-        glutSolidTeapot(0.2);
+        glutSolidTeapot(0.4);
         
         glPopMatrix();
     }
@@ -928,6 +928,7 @@ void display( )
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
     
     //drawCoordSystem();
+  
     
     // Environments
     drawSky();
@@ -935,14 +936,21 @@ void display( )
     //drawTerrain();
     //drawWater();
     //drawCube();
-
+    
+    
     // Units
+    
+    
     drawPlayer();
     drawEnemies();
     drawBullets();
     
     
-    glFlush ();
+    
+    
+    //glFlush ();
+    
+    
     
 }
 

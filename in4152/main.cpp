@@ -175,7 +175,7 @@ GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
 GLuint texSky, texWater, texGrass, texStone;
-GLuint	texWhite, texArmy, texGreen;
+GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet;
 
 // Material
 struct Material matArmy {
@@ -697,23 +697,30 @@ void drawBullets() {
             bullets[i].pos.y += bullets[i].acceleration * sin(bullets[i].angle * M_PI / 180.0f);
            
             glPushMatrix();
-            
-            glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texWhite );
 
+            glEnable( GL_TEXTURE_2D );
+            glBindTexture( GL_TEXTURE_2D, texBullet );
             
-            if(bullets[i].type == 0) setMaterial(matGreenBullet);
-            else if(bullets[i].type == 1) setMaterial(matRedBullet);
+
+            if(bullets[i].type == 0) setMaterial(matGold);
+            else if(bullets[i].type == 1) setMaterial(matChrome);
             
             glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
             glRotatef(bullets[i].angle,0,0,1);
             
             glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.1f, -0.01f, 0.0f);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.1f, -0.01f, 0.0f);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.1f, 0.01f, 0.0f);
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.1f, 0.01f, 0.0f);
+            glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.2f, -0.1f, 0.0f);
+            glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.2f, -0.1f, 0.0f);
+            glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.2f, 0.1f, 0.0f);
+            glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.2f, 0.1f, 0.0f);
+            
+            glTexCoord2f(0.6f, 0.8f); glVertex3f(0.2f, -0.1f, 0.0f);
+            glTexCoord2f(0.8f, 0.8f); glVertex3f(0.5f, -0.05f, 0.0f);
+            glTexCoord2f(0.8f, 0.2f); glVertex3f(0.5f, 0.05f, 0.0f);
+            glTexCoord2f(0.6f, 0.2f); glVertex3f(0.2f, 0.1f, 0.0f);
+            
             glEnd();
+            
 
 
             glPopMatrix();
@@ -1248,6 +1255,8 @@ void init()
     texArmy = loadTexture("textures/army.bmp");
     texStone = loadTexture("textures/stone.bmp");
     texGrass = loadTexture("textures/grass.bmp");
+    texAluminium = loadTexture("textures/aluminium.bmp");
+    texBullet = loadTexture("textures/bullet.png");
     
     glEnable(GL_NORMALIZE);
     

@@ -66,7 +66,7 @@ struct Player {
 };
 
 struct Boss {
-    glm::vec3 pos;
+    std::vector<glm::vec3> pos;
     glm::vec3 move;
     
     float angle;
@@ -74,6 +74,8 @@ struct Boss {
     
     bool isDead;
     int hp;
+    int partNum;
+    float partDistance;
     
 };
 
@@ -287,7 +289,7 @@ void generateMountains(float start, float end) {
     
     float width = 10;
     for(int x = start;x<end;x++) {
-        if(randomRange(0, 100)>70) {
+        if(randomRange(0, 100)>90) {
             struct Mountain mountain {
                 glm::vec3(x,randomRange(7,10)/10,randomRange(-80,-60)),
                 width,
@@ -303,7 +305,7 @@ void generateMountains(float start, float end) {
     // medium mountain
     width = 7;
     for(int x = start;x<end;x++) {
-        if(randomRange(0, 100)>70) {
+        if(randomRange(0, 100)>80) {
             struct Mountain mountain {
                 glm::vec3(x,randomRange(2,6)/10,randomRange(-50,-10)),
                 width,
@@ -387,7 +389,7 @@ bool isRightKeyPressed = false;
 bool isDownKeyPressed = false;
 bool isUpKeyPressed = false;
 
-std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false, float acceleration=0.05, int minDistance=0) {
+std::vector<glm::vec3> computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false, float acceleration=0.05, float minDistance=0) {
     std::vector<glm::vec3> vec;
     
     bool isOutBoundary = false;
@@ -528,7 +530,15 @@ void spawnBoss() {
     isBoss = true;
     boss.isDead = false;
     boss.hp = 20;
-    boss.pos = glm::vec3(randomRange(0, 15),randomRange(-15, 15),0);
+    
+    glm::vec3 part = glm::vec3(randomRange(0, 10),randomRange(10, -10),0);
+    
+    boss.partNum = 5;
+    for(int i=0;i<boss.partNum;i++) {
+        part.x += boss.partDistance;
+        boss.pos.push_back(part);
+    }
+    
     boss.move = player.pos;
 }
 
@@ -822,36 +832,45 @@ void drawPlayer()
 
 void drawBoss()
 {
+    std::vector<glm::vec3> moveVec;
+    
     if(!boss.isDead) {
-        // Movement
-        boss.move = player.pos;
-        std::vector<glm::vec3> moveVec = computeMovement(boss.pos, boss.move, false, boss.acceleration);
-        boss.pos = moveVec[0];
-        boss.move = moveVec[1];
-        
-        // Rotation Angle
-        boss.angle = computeAngle(glm::vec2(boss.pos.x, boss.pos.y), glm::vec2(player.pos.x, player.pos.y));
-
-        // TEXTURE AND MATERIAL
-        glPushMatrix();
         glEnable( GL_TEXTURE_2D );
         glBindTexture( GL_TEXTURE_2D, texArmy );
         setMaterial(matChrome);
         
-        // Apply movement
-        glTranslated(boss.pos.x, boss.pos.y, 0);
-        
-        // Apply seamless rotation
-        glRotatef(boss.angle, 0, 0, 1);
-        if(boss.angle > 45 && boss.angle <= 135)  glRotatef((boss.angle - 45) * 2, 1, 0, 0);
-        else if (boss.angle > 135) glRotatef(180, 1, 0, 0);
-        
-        if(boss.angle < -45 && boss.angle >= -135) glRotatef((boss.angle + 45) * -2, 1, 0, 0);
-        else if(boss.angle < -135) glRotatef(-180, 1, 0, 0);
-        
-        glutSolidTeapot(0.6);
-        
-        glPopMatrix();
+        for(int i=0;i<boss.partNum;i++) {
+            printf("x: %f, y: %f\n",boss.pos[i].x, boss.pos[i].y);
+            glPushMatrix();
+            
+            // head
+            if(i==0) {
+                boss.move = player.pos;
+                moveVec = computeMovement(boss.pos[i], boss.move, false, boss.acceleration, 0);
+                boss.pos[i] = moveVec[0];
+                
+                boss.angle = computeAngle(glm::vec2(boss.pos[i].x, boss.pos[i].y), glm::vec2(player.pos.x, player.pos.y));
+                
+                glTranslatef(boss.pos[i].x, boss.pos[i].y, boss.pos[i].y);
+                glRotatef(boss.angle, 0, 0, 1);
+                if(boss.angle > 45 && boss.angle <= 135)  glRotatef((boss.angle - 45) * 2, 1, 0, 0);
+                else if (boss.angle > 135) glRotatef(180, 1, 0, 0);
+                
+                if(boss.angle < -45 && boss.angle >= -135) glRotatef((boss.angle + 45) * -2, 1, 0, 0);
+                else if(boss.angle < -135) glRotatef(-180, 1, 0, 0);
+
+                
+            } else {
+                moveVec = computeMovement(boss.pos[i], boss.pos[i-1], false, 0.1, boss.partDistance);
+                boss.pos[i] = moveVec[0];
+                glTranslatef(boss.pos[i].x, boss.pos[i].y, boss.pos[i].y);
+            }
+            
+            glutSolidTeapot(0.5);
+            glPopMatrix();
+        }
+    
+
     }
     
 }
@@ -1125,6 +1144,11 @@ void keyboard(unsigned char key, int x, int y)
             //turn AA off
             lightPosition[2] -= 1.00;
             break;
+        case 'r':
+            //player respawn
+            player.isDead = false;
+            player.hp = 20;
+            break;
         case 'b':
             spawnBoss();
             break;
@@ -1253,12 +1277,13 @@ void init()
     player.hp = 20;
     player.isDead = false;
     
-    boss.pos = glm::vec3(randomRange(0, 15),randomRange(-15, 15),0);
-    boss.move = player.pos;
+    //boss.move = player.pos;
     boss.angle = 0;
     boss.acceleration = 0.02;
     boss.isDead = true;
     boss.hp = 20;
+    boss.partNum = 10;
+    boss.partDistance = 0.3;
    
 }
 

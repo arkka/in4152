@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "968"
-            endingLineNumber = "968">
+            startingLineNumber = "1061"
+            endingLineNumber = "1061">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -24,11 +24,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1059"
-            endingLineNumber = "1059"
+            startingLineNumber = "1161"
+            endingLineNumber = "1161"
             landmarkName = "keyboardSpecial(int key, int x, int y)"
             landmarkType = "7">
          </BreakpointContent>
@@ -40,11 +40,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1065"
-            endingLineNumber = "1065"
+            startingLineNumber = "1167"
+            endingLineNumber = "1167"
             landmarkName = "keyboardSpecial(int key, int x, int y)"
             landmarkType = "7">
          </BreakpointContent>
@@ -56,11 +56,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1414"
-            endingLineNumber = "1414"
+            startingLineNumber = "1525"
+            endingLineNumber = "1525"
             landmarkName = "displayInternal(void)"
             landmarkType = "7">
          </BreakpointContent>
@@ -72,11 +72,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698126.845683"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "896"
-            endingLineNumber = "896"
+            startingLineNumber = "976"
+            endingLineNumber = "976"
             landmarkName = "spawnEnemy()"
             landmarkType = "7">
          </BreakpointContent>
@@ -88,11 +88,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698126.845683"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "702"
-            endingLineNumber = "702"
+            startingLineNumber = "737"
+            endingLineNumber = "737"
             landmarkName = "drawEnemies()"
             landmarkType = "7">
          </BreakpointContent>
@@ -104,11 +104,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "487"
-            endingLineNumber = "487"
+            startingLineNumber = "503"
+            endingLineNumber = "503"
             landmarkName = "checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)"
             landmarkType = "7">
          </BreakpointContent>
@@ -120,11 +120,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "493"
-            endingLineNumber = "493"
+            startingLineNumber = "509"
+            endingLineNumber = "509"
             landmarkName = "checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)"
             landmarkType = "7">
          </BreakpointContent>
@@ -136,11 +136,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "475"
-            endingLineNumber = "475"
+            startingLineNumber = "491"
+            endingLineNumber = "491"
             landmarkName = "checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)"
             landmarkType = "7">
          </BreakpointContent>
@@ -152,11 +152,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "487"
-            endingLineNumber = "487"
+            startingLineNumber = "503"
+            endingLineNumber = "503"
             landmarkName = "checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)"
             landmarkType = "7">
          </BreakpointContent>
@@ -168,11 +168,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "490"
-            endingLineNumber = "490"
+            startingLineNumber = "506"
+            endingLineNumber = "506"
             landmarkName = "checkCollide(glm::vec3 a, float aWidth, float aHeight, glm::vec3 b, float bWidth, float bHeight)"
             landmarkType = "7">
          </BreakpointContent>
@@ -184,11 +184,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "496"
-            endingLineNumber = "496"
+            startingLineNumber = "512"
+            endingLineNumber = "512"
             landmarkName = "fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float acceleration = 0.10)"
             landmarkType = "7">
          </BreakpointContent>
@@ -200,11 +200,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "496"
-            endingLineNumber = "496"
+            startingLineNumber = "512"
+            endingLineNumber = "512"
             landmarkName = "fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float acceleration = 0.10)"
             landmarkType = "7">
          </BreakpointContent>
@@ -216,11 +216,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "633"
-            endingLineNumber = "633"
+            startingLineNumber = "666"
+            endingLineNumber = "666"
             landmarkName = "drawBullets()"
             landmarkType = "7">
          </BreakpointContent>
@@ -232,11 +232,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491696869.677318"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "309"
-            endingLineNumber = "309"
+            startingLineNumber = "325"
+            endingLineNumber = "325"
             landmarkName = "drawMountain(glm::vec3 peak, float width, GLuint texId)"
             landmarkType = "7">
          </BreakpointContent>
@@ -248,11 +248,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1137"
-            endingLineNumber = "1137"
+            startingLineNumber = "1239"
+            endingLineNumber = "1239"
             landmarkName = "init()"
             landmarkType = "7">
          </BreakpointContent>
@@ -264,11 +264,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491693898.588559"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "251"
-            endingLineNumber = "251"
+            startingLineNumber = "267"
+            endingLineNumber = "267"
             landmarkName = "loadTexture(const char* texture)"
             landmarkType = "7">
          </BreakpointContent>
@@ -280,11 +280,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491698460.432232"
+            timestampString = "491858617.074239"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1146"
-            endingLineNumber = "1146"
+            startingLineNumber = "1248"
+            endingLineNumber = "1248"
             landmarkName = "init()"
             landmarkType = "7">
          </BreakpointContent>
@@ -292,31 +292,15 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "328"
-            endingLineNumber = "328"
-            landmarkName = "drawMountain(glm::vec3 peak, float width, GLuint texId)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "334"
-            endingLineNumber = "334"
+            startingLineNumber = "344"
+            endingLineNumber = "344"
             landmarkName = "drawMountain(glm::vec3 peak, float width, GLuint texId)"
             landmarkType = "7">
          </BreakpointContent>
@@ -328,12 +312,76 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "in4152/main.cpp"
-            timestampString = "491697875.293311"
+            timestampString = "491855169.79424"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "329"
-            endingLineNumber = "329"
+            startingLineNumber = "350"
+            endingLineNumber = "350"
             landmarkName = "drawMountain(glm::vec3 peak, float width, GLuint texId)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "in4152/main.cpp"
+            timestampString = "491855169.79424"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "345"
+            endingLineNumber = "345"
+            landmarkName = "drawMountain(glm::vec3 peak, float width, GLuint texId)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "in4152/main.cpp"
+            timestampString = "491858617.074239"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "542"
+            endingLineNumber = "542"
+            landmarkName = "spawnBoss()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "in4152/main.cpp"
+            timestampString = "491855651.633934"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "409"
+            endingLineNumber = "409"
+            landmarkName = "computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false, float acceleration=0.05, int minDistance=0)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "in4152/main.cpp"
+            timestampString = "491855842.267323"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "408"
+            endingLineNumber = "408"
+            landmarkName = "computeMovement(glm::vec3 from, glm::vec3 to, bool boundary=false, float acceleration=0.05, float minDistance=0)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

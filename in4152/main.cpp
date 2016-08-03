@@ -137,9 +137,6 @@ GLfloat lightShininess[] = { 50.0 };
 
 GLfloat globalAmbient[] = { 0.2, 0.2, 0.2, 1.0 };
 
-std::vector<float> MeshVertices;
-std::vector<unsigned int> MeshTriangles;
-
 // Declare your own global variables here:
 
 // Generated terrain
@@ -163,6 +160,12 @@ GLfloat mountainX = 0;
 
 
 // Mesh
+std::vector<float> MeshVertices;
+std::vector<unsigned int> MeshTriangles;
+
+std::vector<float> bossVertices, pokeVertices;
+std::vector<unsigned int> bossTriangles, pokeTriangles;
+
 float x1l, x2l, y1l, y2l, z1l, z2l;
 
 GLint viewport[4]; //var to hold the viewport info
@@ -175,7 +178,7 @@ GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
 GLuint texSky, texWater, texGrass, texStone;
-GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet;
+GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet, texSkull;
 
 // Material
 struct Material matArmy {
@@ -248,6 +251,14 @@ struct Material matRedBullet {
     {0.7,	0.7,	0.7}, // Ks
     {0.0, 0.0, 0.0, 1.0},
     0.25 // n
+};
+
+struct Material matSkull {
+    {0.25, 0.25,	0.25}, // Ka
+    {0.4,	0.4,	0.4}, // Kd
+    {0.774597,	0.774597,	0.774597}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
+    0.6 // n
 };
 
 float randomRange(int min, int max) {
@@ -345,6 +356,7 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
         vert = start;
     
         glBegin(GL_QUAD_STRIP);
+        
         for(float i=0;i<=360;i+=1)
         {
             vert.x += sliceX;
@@ -354,7 +366,9 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
             float nextY = vert.y * (1 - (curSlice+1)/slice);
             float nextZ = vert.z - ((curSlice+1)/slice) * 5;
             
-            //glBegin(GL_QUADS);
+            
+            glNormal3f(0, 0, 1);
+            
             glTexCoord2f((sliceX*i/distance.x),1); glVertex3f(vert.x, vert.y, vert.z);
             glTexCoord2f((sliceX*i/distance.x),0); glVertex3f(vert.x, nextY, nextZ);
             
@@ -530,10 +544,9 @@ void spawnBoss() {
     isBoss = true;
     boss.isDead = false;
     boss.hp = 20;
+    boss.pos.clear();
+    glm::vec3 part = glm::vec3(randomRange(0, 10),-10,0);
     
-    glm::vec3 part = glm::vec3(randomRange(0, 10),randomRange(10, -10),0);
-    
-    boss.partNum = 5;
     for(int i=0;i<boss.partNum;i++) {
         part.x += boss.partDistance;
         boss.pos.push_back(part);
@@ -578,6 +591,69 @@ void drawLight() {
     glutSolidSphere(1,10,10);
     glPopMatrix();
 }
+
+
+
+void drawMesh(std::vector<float> MeshVertices, std::vector<unsigned int> MeshTriangles)
+{
+    //1) use the mesh data structure;
+    //each triangle is defined with 3 consecutive indices in the MeshTriangles table
+    //these indices correspond to vertices stored in the MeshVertices table.
+    //provide a function that draws these triangles.
+    
+    //2) compute the normals of these triangles
+    
+    //3) try computing a normal per vertex as the average of the adjacent face normals
+    // call glNormal3f with the corresponding values before each vertex
+    // What do you observe with respect to the lighting?
+    
+    //4) try loading your own model (export it from Blender as a Wavefront obj) and replace the provided mesh file.
+    
+    //cout << MeshTriangles[1] << "\n";
+    
+    glPushMatrix();
+    
+    
+    
+    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
+        
+        
+        x1l = MeshVertices[MeshTriangles[i + 1] * 3] - MeshVertices[MeshTriangles[i] * 3];
+        y1l= MeshVertices[MeshTriangles[i + 1] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
+        z1l = MeshVertices[MeshTriangles[i + 1] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
+        
+        x2l = MeshVertices[MeshTriangles[i + 2] * 3] - MeshVertices[MeshTriangles[i] * 3];
+        y2l = MeshVertices[MeshTriangles[i + 2] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
+        z2l = MeshVertices[MeshTriangles[i + 2] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
+        
+        glNormal3f(y1l * z2l - y2l * z1l, z1l * x2l - z2l * x1l, x1l * y2l - x2l * y1l);
+        
+        
+        
+        glBegin(GL_TRIANGLES);
+        //glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(MeshVertices[MeshTriangles[i]*3],
+                   MeshVertices[MeshTriangles[i]*3+1],
+                   MeshVertices[MeshTriangles[i]*3+2]
+                   );
+        //glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(MeshVertices[MeshTriangles[i+1]*3],
+                   MeshVertices[MeshTriangles[i+1]*3 + 1],
+                   MeshVertices[MeshTriangles[i+1]*3 + 2]
+                   );
+        //glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(MeshVertices[MeshTriangles[i+2]*3],
+                   MeshVertices[MeshTriangles[i+2]*3 + 1],
+                   MeshVertices[MeshTriangles[i+2]*3 + 2]
+                   );
+        glEnd();
+        
+        
+    }
+    
+    glPopMatrix();
+}
+
 
 void drawSky() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -659,8 +735,21 @@ void drawBullets() {
         if(!bullets[i].isDestroyed) {
             // Check collision
             
-            // enemy got hit ?
+           
             if(bullets[i].type == 0) {
+                
+                if(!boss.isDead && checkCollide(bullets[i].pos, 0.1, 0.1, boss.pos[0], 0.5, 0.5)) {
+                    boss.hp -= 1;
+                    bullets[i].isDestroyed = true;
+                    
+                    if(boss.hp<=0) {
+                        boss.hp = 0;
+                        boss.isDead = true;
+                    }
+                    printf("Boss HP: %d/%d\n",boss.hp, 20);
+                }
+                
+                // enemy got hit?
                 for (int j=0; j < enemies.size(); j++) {
                     if(!enemies[j].isDead && checkCollide(bullets[i].pos, 0.1, 0.1, enemies[j].pos, 0.3, 0.3)) {
                         enemies[j].hp -= 1;
@@ -689,6 +778,7 @@ void drawBullets() {
                 printf("Player HP: %d/%d\n",player.hp, 20);
             }
 
+
             
             
             
@@ -703,21 +793,22 @@ void drawBullets() {
             
 
             if(bullets[i].type == 0) setMaterial(matGold);
-            else if(bullets[i].type == 1) setMaterial(matChrome);
+            else if(bullets[i].type == 1) setMaterial(matRuby);
             
             glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
             glRotatef(bullets[i].angle,0,0,1);
             
             glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.2f, -0.1f, 0.0f);
-            glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.2f, -0.1f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.2f, 0.1f, 0.0f);
-            glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.2f, 0.1f, 0.0f);
+            glNormal3f(0,0,1);
+            glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
+            glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.1f, -0.05f, 0.0f);
+            glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.1f, 0.05f, 0.0f);
+            glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
             
-            glTexCoord2f(0.6f, 0.8f); glVertex3f(0.2f, -0.1f, 0.0f);
-            glTexCoord2f(0.8f, 0.8f); glVertex3f(0.5f, -0.05f, 0.0f);
-            glTexCoord2f(0.8f, 0.2f); glVertex3f(0.5f, 0.05f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f(0.2f, 0.1f, 0.0f);
+            glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
+            glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.02f, 0.0f);
+            glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.02f, 0.0f);
+            glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
             
             glEnd();
             
@@ -837,43 +928,106 @@ void drawPlayer()
     
 }
 
+void drawBossTail(float r, float divisions) {
+    float x, y, z, dTheta=180/divisions, dLon=360/divisions, degToRad=3.14/180 ;
+    
+    for(float lat =0 ; lat <=180 ; lat+=dTheta)
+    {
+        glBegin( GL_QUAD_STRIP ) ;
+        for(float lon = 0 ; lon <=360; lon+=dLon)
+        {
+            
+            x = r*cosf(lat * degToRad) * sinf(lon * degToRad) ;
+            y = r*sinf(lat * degToRad) * sinf(lon * degToRad) ;
+            z = r*cosf(lon * degToRad) ;
+            
+            glNormal3f( x, y, z) ;
+            glVertex3f( x, y, z ) ;
+            
+            x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+            y = r*sinf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+            z = r*cosf( lon * degToRad ) ;
+            
+            glNormal3f( x, y, z ) ;
+            glVertex3f( x, y, z ) ;
+        }
+        glEnd() ;
+        
+    }
+}
+
 void drawBoss()
 {
     std::vector<glm::vec3> moveVec;
     
     if(!boss.isDead) {
+        
+        // check collide with player
+        if(checkCollide(player.pos, 0.2, 0.2, boss.pos[0], 0.5, 0.5)) {
+            // Suicide bomb!
+            player.isDead = true;
+        }
+
+        
         glEnable( GL_TEXTURE_2D );
         glBindTexture( GL_TEXTURE_2D, texArmy );
         setMaterial(matChrome);
         
+        
+        boss.move = player.pos;
+        
         for(int i=0;i<boss.partNum;i++) {
-            printf("x: %f, y: %f\n",boss.pos[i].x, boss.pos[i].y);
+            //printf("x: %f, y: %f\n",boss.pos[i].x, boss.pos[i].y);
             glPushMatrix();
             
+            // gravity
+            
+        
             // head
             if(i==0) {
-                boss.move = player.pos;
+                
                 moveVec = computeMovement(boss.pos[i], boss.move, false, boss.acceleration, 0);
                 boss.pos[i] = moveVec[0];
                 
                 boss.angle = computeAngle(glm::vec2(boss.pos[i].x, boss.pos[i].y), glm::vec2(player.pos.x, player.pos.y));
                 
-                glTranslatef(boss.pos[i].x, boss.pos[i].y, boss.pos[i].y);
+                
+                glTranslatef(boss.pos[i].x, boss.pos[i].y, boss.pos[i].z);
+                
                 glRotatef(boss.angle, 0, 0, 1);
+                
+                
                 if(boss.angle > 45 && boss.angle <= 135)  glRotatef((boss.angle - 45) * 2, 1, 0, 0);
                 else if (boss.angle > 135) glRotatef(180, 1, 0, 0);
                 
                 if(boss.angle < -45 && boss.angle >= -135) glRotatef((boss.angle + 45) * -2, 1, 0, 0);
                 else if(boss.angle < -135) glRotatef(-180, 1, 0, 0);
+                
+                glRotatef(90, 0, 1, 0);
+                
+                glBindTexture( GL_TEXTURE_2D, texSkull );
+                setMaterial(matSkull);
+                
+                drawMesh(bossVertices, bossTriangles);
 
                 
             } else {
-                moveVec = computeMovement(boss.pos[i], boss.pos[i-1], false, 0.1, boss.partDistance);
+                // gravity
+                if(boss.pos[i].y >= worldLimitY) boss.pos[i].y -= 0.05;
+                
+                // tail near head move way more faster then the real 'tail'
+                moveVec = computeMovement(boss.pos[i], boss.pos[i-1], false, 0.01 + 0.005 * (boss.partNum-i/boss.partNum), boss.partDistance);
                 boss.pos[i] = moveVec[0];
-                glTranslatef(boss.pos[i].x, boss.pos[i].y, boss.pos[i].y);
+                
+                
+                glTranslatef(boss.pos[i].x, boss.pos[i].y, 0);
+                
+                
+                drawBossTail(0.5 - 0.2 * i/boss.partNum ,10);
+                //glutSolidTeapot(0.5);
             }
             
-            glutSolidTeapot(0.5);
+            
             glPopMatrix();
         }
     
@@ -882,52 +1036,6 @@ void drawBoss()
     
 }
 
-void drawMesh()
-{
-    //1) use the mesh data structure;
-    //each triangle is defined with 3 consecutive indices in the MeshTriangles table
-    //these indices correspond to vertices stored in the MeshVertices table.
-    //provide a function that draws these triangles.
-    
-    //2) compute the normals of these triangles
-    
-    //3) try computing a normal per vertex as the average of the adjacent face normals
-    // call glNormal3f with the corresponding values before each vertex
-    // What do you observe with respect to the lighting?
-    
-    //4) try loading your own model (export it from Blender as a Wavefront obj) and replace the provided mesh file.
-    
-    //cout << MeshTriangles[1] << "\n";
-    
-    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
-        
-        
-        x1l = MeshVertices[MeshTriangles[i + 1] * 3] - MeshVertices[MeshTriangles[i] * 3];
-        y1l= MeshVertices[MeshTriangles[i + 1] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
-        z1l = MeshVertices[MeshTriangles[i + 1] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
-        
-        x2l = MeshVertices[MeshTriangles[i + 2] * 3] - MeshVertices[MeshTriangles[i] * 3];
-        y2l = MeshVertices[MeshTriangles[i + 2] * 3 + 1] - MeshVertices[MeshTriangles[i] * 3 + 1];
-        z2l = MeshVertices[MeshTriangles[i + 2] * 3 + 2] - MeshVertices[MeshTriangles[i] * 3 + 2];
-        
-        glNormal3f(y1l * z2l - y2l * z1l, z1l * x2l - z2l * x1l, x1l * y2l - x2l * y1l);
-        
-        glBegin(GL_TRIANGLES);
-        glVertex3f(MeshVertices[MeshTriangles[i]*3],
-                   MeshVertices[MeshTriangles[i]*3+1],
-                   MeshVertices[MeshTriangles[i]*3+2]
-                   );
-        glVertex3f(MeshVertices[MeshTriangles[i+1]*3],
-                   MeshVertices[MeshTriangles[i+1]*3 + 1],
-                   MeshVertices[MeshTriangles[i+1]*3 + 2]
-                   );
-        glVertex3f(MeshVertices[MeshTriangles[i+2]*3],
-                   MeshVertices[MeshTriangles[i+2]*3 + 1],
-                   MeshVertices[MeshTriangles[i+2]*3 + 2]
-                   );
-        glEnd();
-    }
-}
 
 void drawCube(){
     glPushMatrix();
@@ -1257,6 +1365,7 @@ void init()
     texGrass = loadTexture("textures/grass.bmp");
     texAluminium = loadTexture("textures/aluminium.bmp");
     texBullet = loadTexture("textures/bullet.png");
+    texSkull = loadTexture("textures/skull.jpg");
     
     glEnable(GL_NORMALIZE);
     
@@ -1269,8 +1378,15 @@ void init()
     
     
     
-    // MESHES
-    loadMesh("/Users/arkkadhiratara/Desktop/3DCG/in4152/in4152/David.obj");
+//    // MESHES
+    loadMesh("meshes/boss.obj");
+    bossVertices =  MeshVertices;
+    bossTriangles = MeshTriangles;
+    
+    loadMesh("meshes/poke.obj");
+    pokeVertices =  MeshVertices;
+    pokeTriangles = MeshTriangles;
+    
     
     // Initialize scene
     worldLimitX = 8;
@@ -1291,8 +1407,8 @@ void init()
     boss.acceleration = 0.02;
     boss.isDead = true;
     boss.hp = 20;
-    boss.partNum = 10;
-    boss.partDistance = 0.3;
+    boss.partNum = 20;
+    boss.partDistance = 0.5;
    
 }
 

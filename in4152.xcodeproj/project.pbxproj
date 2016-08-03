@@ -53,7 +53,6 @@
 		C4F4B7B71D2DC80E00B6C0F5 /* argumentParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argumentParser.h; sourceTree = "<group>"; };
 		C4F4B7B91D2DC80E00B6C0F5 /* matrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = matrix.h; sourceTree = "<group>"; };
 		C4F4B7BA1D2DC80E00B6C0F5 /* trackball.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trackball.h; sourceTree = "<group>"; };
-		C4F4B7BB1D2DD34B00B6C0F5 /* David.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = David.obj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,7 +108,6 @@
 				C40842F01D4E157500F5E68F /* stb_image_aug.h */,
 				C40842F11D4E157500F5E68F /* stbi_DDS_aug_c.h */,
 				C40842F21D4E157500F5E68F /* stbi_DDS_aug.h */,
-				C4F4B7BB1D2DD34B00B6C0F5 /* David.obj */,
 				C4F4B7B71D2DC80E00B6C0F5 /* argumentParser.h */,
 				C4F4B7B91D2DC80E00B6C0F5 /* matrix.h */,
 				C4F4B7BA1D2DC80E00B6C0F5 /* trackball.h */,

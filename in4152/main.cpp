@@ -14,6 +14,7 @@
 #include <GLUT/glut.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
+#include <OpenGL/glext.h>
 #else
 #include <GL/glut.h>
 #include <GL/glu.h>
@@ -22,6 +23,7 @@
 
 #include "SOIL.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -127,6 +129,9 @@ unsigned int screenWidth = 1920;  // screen width
 unsigned int screenHeight = 800;  // screen height
 
 
+// Camera
+GLfloat cameraPosition[] = {-2.5, 3.5,-2.5};
+
 // Light pos
 //GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
 GLfloat lightPosition[]= { 5.0f, 20.0f, 40.0f, 1.0f };
@@ -137,7 +142,15 @@ GLfloat lightShininess[] = { 50.0 };
 
 GLfloat globalAmbient[] = { 0.2, 0.2, 0.2, 1.0 };
 
+const int shadowMapSize=512;
+
+MATRIX4X4 lightProjectionMatrix[16], lightViewMatrix[16];
+MATRIX4X4 cameraProjectionMatrix[16], cameraViewMatrix[16];
+
+float angle = 0;
+
 // Declare your own global variables here:
+
 
 // Generated terrain
 std::vector<struct Mountain> mountains;
@@ -177,6 +190,7 @@ GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
+GLuint texShadow;
 GLuint texSky, texWater, texGrass, texStone;
 GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet, texSkull;
 
@@ -1040,12 +1054,14 @@ void drawBoss()
 void drawCube(){
     glPushMatrix();
     
-    glRotated(xrot, 1, 0, 0);
-    glRotated(yrot, 0, 1, 0);
-    xrot+=1;
-    yrot+=1;
+    //glRotated(xrot, 1, 0, 0);
+    //glRotated(yrot, 0, 1, 0);
+    //xrot+=1;
+    //yrot+=1;
+    glTranslatef(0,0,-2);
     
-    glBindTexture(GL_TEXTURE_2D, texArmy);
+    glBindTexture(GL_TEXTURE_2D, texWhite);
+    setMaterial(matChrome);
     
     glBegin(GL_QUADS);
     // Front Face
@@ -1107,39 +1123,27 @@ void spawnEnemy() {
 void display( )
 {
     
-    // Game Logic
-    
-    curEnemies = 0;
-    for(int i=0;i<enemies.size();i++){
-        if(enemies[i].isDead==false) curEnemies++;
-    }
-    
-    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
-        spawnBoss();
-    }
-    
-    if(enemies.size() < maxEnemies && boss.isDead) {
-        spawnEnemy();
-    }
-    
-    
-    
-    // End of Game logic
-    
-    // Light
-    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
-    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);   // Specular
-    glLightfv(GL_LIGHT0, GL_SHININESS, lightShininess);   // Specular
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
+    // Enemy and Boss Spawning
+//    curEnemies = 0;
+//    for(int i=0;i<enemies.size();i++){
+//        if(enemies[i].isDead==false) curEnemies++;
+//    }
+//    
+//    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
+//        spawnBoss();
+//    }
+//    
+//    if(enemies.size() < maxEnemies && boss.isDead) {
+//        spawnEnemy();
+//    }
+//    
     
     //drawCoordSystem();
   
     
     // Environments
-    drawSky();
-    drawMountains();
+    //drawSky();
+    //drawMountains();
     //drawTerrain();
     //drawWater();
     //drawCube();
@@ -1148,16 +1152,46 @@ void display( )
     // Units
     
     
-    drawPlayer();
-    drawEnemies();
-    drawBoss();
-    drawBullets();
+    //drawPlayer();
+    //drawEnemies();
+    //drawBoss();
+    //drawBullets();
     
+ 
     
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glPushMatrix();
     
+    glTranslatef(0.45f, 1.0f, 0.45f);
+    glutSolidSphere(0.2, 24, 24);
     
-    //glFlush ();
+    glTranslatef(-0.9f, 0.0f, 0.0f);
+    glutSolidSphere(0.2, 24, 24);
     
+    glTranslatef(0.0f, 0.0f,-0.9f);
+    glutSolidSphere(0.2, 24, 24);
+    
+    glTranslatef(0.9f, 0.0f, 0.0f);
+    //glutSolidSphere(0.2, 24, 24);
+    glutSolidCube (0.3);
+    glPopMatrix();
+    
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glPushMatrix();
+    
+    glTranslatef(0.0f, 0.5f, 0.0f);
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+    glutSolidTeapot(0.2);
+    
+    glPopMatrix();
+    
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glPushMatrix();
+    
+    glScalef(1.0f, 0.05f, 1.0f);
+    glutSolidCube(3.0f);
+    
+    glPopMatrix();
     
     
 }
@@ -1236,27 +1270,21 @@ void keyboard(unsigned char key, int x, int y)
             break;
             
         case 'i':
-            //turn AA on
             lightPosition[0] += 1.00;
             break;
         case 'I':
-            //turn AA off
             lightPosition[0] -= 1.00;
             break;
         case 'o':
-            //turn AA on
             lightPosition[1] += 1.00;
             break;
         case 'O':
-            //turn AA off
             lightPosition[1] -= 1.00;
             break;
         case 'p':
-            //turn AA on
             lightPosition[2] += 1.00;
             break;
         case 'P':
-            //turn AA off
             lightPosition[2] -= 1.00;
             break;
         case 'r':
@@ -1352,9 +1380,41 @@ void reshape(int w, int h);
 bool loadMesh(const char * filename);
 void init()
 {
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     
+    
+    glShadeModel(GL_SMOOTH);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearDepth(1.0f);
+    
+    glDepthFunc(GL_LEQUAL);
+    glEnable( GL_DEPTH_TEST );
+    glEnable(GL_CULL_FACE);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    
+    
+     glEnable(GL_NORMALIZE);
+    
+    // Shadow
+    glGenTextures(1, &texShadow);
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glTexImage2D(   GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0,
+                 GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, lightSpecular);
+    glMaterialf(GL_FRONT, GL_SHININESS, 16.0f);
+    
+    
+
     // Texture
     texWhite = loadTexture("textures/white.bmp");
     texGreen = loadTexture("textures/green.bmp");
@@ -1366,19 +1426,9 @@ void init()
     texAluminium = loadTexture("textures/aluminium.bmp");
     texBullet = loadTexture("textures/bullet.png");
     texSkull = loadTexture("textures/skull.jpg");
+
     
-    glEnable(GL_NORMALIZE);
-    
-    glShadeModel(GL_SMOOTH);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-    glClearDepth(1.0f);
-    glEnable( GL_DEPTH_TEST );
-    //glDepthFunc(GL_LEQUAL);
-    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    
-    
-    
-//    // MESHES
+    // MESHES
     loadMesh("meshes/boss.obj");
     bossVertices =  MeshVertices;
     bossTriangles = MeshTriangles;
@@ -1607,13 +1657,37 @@ int main(int argc, char** argv)
     glutCreateWindow(argv[0]);
     
     init( );
+    glPushMatrix();
     
     // Initialize viewpoint
-    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(0,0,winZ);
-    tbInitTransform();     
-    tbHelp();
+    
+    glLoadIdentity();
+    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
+    
+    glLoadIdentity();
+    gluLookAt(cameraPosition[0], cameraPosition[1], cameraPosition[2],
+              0.0f, 0.0f, 0.0f,
+              0.0f, 1.0f, 0.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
+    
+    glLoadIdentity();
+    gluPerspective(45.0f, 1.0f, 2.0f, 8.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix);
+    
+    glLoadIdentity();
+    gluLookAt(  lightPosition[0], lightPosition[1], lightPosition[2],
+              0.0f, 0.0f, 0.0f,
+              0.0f, 1.0f, 0.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, lightViewMatrix);
+    
+    glPopMatrix();
+    
+    
+    //glTranslatef(0,0,winZ);
+    //tbInitTransform();
+    //tbHelp();
 
     // cablage des callback
     glutReshapeFunc(reshape);
@@ -1641,23 +1715,138 @@ void displayInternal(void)
     // Effacer tout
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z
     
-    glLoadIdentity();  // repere camera
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(lightProjectionMatrix);
     
-    tbVisuTransform(); // origine et orientation de la scene
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(lightViewMatrix);
     
-    display( );    
+    //Use viewport the same size as the shadow map
+    glViewport(0, 0, shadowMapSize, shadowMapSize);
     
+    //Draw back faces into the shadow map
+    glCullFace(GL_FRONT);
+    
+    glShadeModel(GL_FLAT);
+    glColorMask(0, 0, 0, 0);
+    
+    // DISPLAY
+    display( );
+    //glLoadIdentity();  // repere camera
+    //tbVisuTransform(); // origine et orientation de la scene
+
+    
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, shadowMapSize, shadowMapSize);
+    //restore states
+    glCullFace(GL_BACK);
+    glShadeModel(GL_SMOOTH);
+    glColorMask(1, 1, 1, 1);
+    
+    
+    // SECOND shadow map routine
+    glClear(GL_DEPTH_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(cameraProjectionMatrix);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(cameraViewMatrix);
+    
+    glViewport(0, 0, screenWidth, screenHeight);
+    
+    // Light
+    //glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
+    glLightfv(GL_LIGHT1, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
+    glLightfv(GL_LIGHT1, GL_SPECULAR, lightSpecular);   // Specular
+    glLightfv(GL_LIGHT1, GL_SHININESS, lightShininess);   // Specular
+    glLightfv(GL_LIGHT1, GL_POSITION, lightPosition);	// Position The Light
+    
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT1);
+    
+    display();
+    
+    // THIRD shadow map routine
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightDiffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, lightSpecular);
+    static GLfloat biasMatrix[16] = {
+        0.5f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.5f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.5f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f};
+    
+    glLoadMatrixf(biasMatrix);
+    
+    //Calculate texture matrix for projection
+    glm::mat4x4 matBias = glm::make_mat4(biasMatrix);
+    glm::mat4x4 matLightProject = glm::make_mat4(lightProjectionMatrix);
+    glm::mat4x4 matLightView = glm::make_mat4(lightViewMatrix);
+    
+    glm::mat4x4 matTex = matBias * matLightProject * matLightView;
+    
+    //Set up texture coordinate generation.
+    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_S, GL_EYE_PLANE, &matTex[0][0]);
+    glEnable(GL_TEXTURE_GEN_S);
+    
+    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_T, GL_EYE_PLANE, &matTex[1][0]);
+    glEnable(GL_TEXTURE_GEN_T);
+    
+    glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_R, GL_EYE_PLANE, &matTex[2][0]);
+    glEnable(GL_TEXTURE_GEN_R);
+    
+    glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_Q, GL_EYE_PLANE, &matTex[3][0]);
+    glEnable(GL_TEXTURE_GEN_Q);
+    
+    // Bind shadow texture
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glEnable(GL_TEXTURE_2D);
+    
+    //Enable shadow comparison
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE);
+    
+    //Shadow comparison should be true (ie not in shadow) if r<=texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL);
+    
+    //Shadow comparison should generate an INTENSITY result
+    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE_ARB, GL_INTENSITY);
+    
+    glAlphaFunc(GL_GEQUAL, 0.99f);
+    glEnable(GL_ALPHA_TEST);
+    
+    display();
+    
+    glDisable(GL_TEXTURE_2D);
+    
+    glDisable(GL_TEXTURE_GEN_S);
+    glDisable(GL_TEXTURE_GEN_T);
+    glDisable(GL_TEXTURE_GEN_R);
+    glDisable(GL_TEXTURE_GEN_Q);
+    
+    glDisable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
+    
+    glFinish();
     glutSwapBuffers();
     glutPostRedisplay();
 }
 // pour changement de taille ou desiconification
 void reshape(int w, int h)
 {
-    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
-    glMatrixMode(GL_PROJECTION);
+    screenWidth=w, screenHeight=h;
+    
+    //Update the camera's projection matrix
+    glPushMatrix();
     glLoadIdentity();
-    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     //gluPerspective (50, (float)w/h, 1, 10);
-    glMatrixMode(GL_MODELVIEW);
+    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
+    glPopMatrix();
 }
 

@@ -131,8 +131,8 @@ unsigned int screenHeight = 800;  // screen height
 
 
 // Camera
-VECTOR3D cameraPosition(0.0f, 0.0f,-10.0f);
-VECTOR3D lightPosition(2.0f, 3.0f,-2.0f);
+VECTOR3D cameraPosition(0.0f, 5.0f,-10.0f);
+VECTOR3D lightPosition(-2.0f, 3.0f,-2.0f);
 float angle = 0;
 
 // Light pos
@@ -679,11 +679,21 @@ void drawSky() {
     glBindTexture( GL_TEXTURE_2D, texSky );
     //setMaterial(matChrome);
     
+    glColor3f(1,0,0);
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, -1.0f, -100.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, -1.0f, -100.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 5.0f, -100.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 5.0f, -100.0f);
+    glEnd();
+    
+    
+    glColor3f(1,0,0);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, -1.0f, 5.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, -1.0f, 5.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 5.0f, 5.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 5.0f, 1.0f);
     glEnd();
     
     
@@ -921,9 +931,9 @@ void drawPlayer()
         
         // TEXTURE AND MATERIAL
         glPushMatrix();
-        glEnable( GL_TEXTURE_2D );
-        glBindTexture( GL_TEXTURE_2D, texArmy );
-        setMaterial(matChrome);
+        //glEnable( GL_TEXTURE_2D );
+        //glBindTexture( GL_TEXTURE_2D, texArmy );
+        //setMaterial(matChrome);
         
         // Apply movement
         glTranslated(player.pos.x, player.pos.y, 0);
@@ -937,6 +947,7 @@ void drawPlayer()
         else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
         
         glutSolidTeapot(0.4);
+
         
         glPopMatrix();
     }
@@ -1143,7 +1154,7 @@ void display( )
     
     
     // Environments
-    //drawSky();
+    drawSky();
     //drawMountains();
     //drawTerrain();
     //drawWater();
@@ -1153,7 +1164,7 @@ void display( )
     // Units
     
     
-    drawPlayer();
+    //drawPlayer();
     //drawEnemies();
     //drawBoss();
     //drawBullets();
@@ -1163,6 +1174,7 @@ void display( )
     glPushMatrix();
     
     glTranslatef(0.45f, 1.0f, 0.45f);
+    
     glutSolidSphere(0.2, 24, 24);
     
     glTranslatef(-0.9f, 0.0f, 0.0f);
@@ -1171,9 +1183,11 @@ void display( )
     glTranslatef(0.0f, 0.0f,-0.9f);
     glutSolidSphere(0.2, 24, 24);
     
-    glTranslatef(0.9f, 0.0f, 0.0f);
+    drawPlayer();
+    
+    glTranslatef(0.9f, 0.0f, 5.0f);
     //glutSolidSphere(0.2, 24, 24);
-    glutSolidCube (0.3);
+    glutSolidCube (5);
     glPopMatrix();
     
     glColor3f(1.0f, 0.0f, 0.0f);
@@ -1188,10 +1202,14 @@ void display( )
     glColor3f(0.0f, 0.0f, 1.0f);
     glPushMatrix();
     
+    
     glScalef(1.0f, 0.05f, 1.0f);
     glutSolidCube(3.0f);
     
     glPopMatrix();
+    
+    
+    
     
     
     
@@ -1427,6 +1445,7 @@ void init()
     glPushMatrix();
     
     glLoadIdentity();
+    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
     
@@ -1437,6 +1456,7 @@ void init()
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
     
     glLoadIdentity();
+    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     gluPerspective(45.0f, 1.0f, 2.0f, 8.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix);
     
@@ -1683,10 +1703,11 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
     
     // couches du framebuffer utilisees par l'application
-    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH );
+    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     
     // position et taille de la fenetre
-    glutInitWindowPosition(640, 512);
+    glutInitWindowPosition(200, 200);
+    glutInitWindowSize(screenWidth,screenHeight);
     glutCreateWindow(argv[0]);
     
     init( );
@@ -1841,6 +1862,7 @@ void reshape(int w, int h)
     glLoadIdentity();
     //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     //gluPerspective (50, (float)w/h, 1, 10);
+    //gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
     gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
     glPopMatrix();

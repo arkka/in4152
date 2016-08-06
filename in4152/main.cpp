@@ -931,16 +931,19 @@ void drawEnemies()
 void drawPlayer()
 {
     if(!player.isDead) {
+       // Movement
+       updatePlayerMouseMovement();
+       std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+       player.pos = moveVec[0];
+       player.move = moveVec[1];
+        
+        setMaterial(matChrome);
         glPushMatrix();
         glTranslatef(player.pos.x, player.pos.y, 0.0f);
         glutSolidSphere(0.2, 24, 24);
         glPopMatrix();
         
-//        // Movement
-//        updatePlayerMouseMovement();
-//        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-//        player.pos = moveVec[0];
-//        player.move = moveVec[1];
+
 //        
 //        // TEXTURE AND MATERIAL
 //       

@@ -131,8 +131,8 @@ unsigned int screenHeight = 800;  // screen height
 
 
 // Camera
-VECTOR3D cameraPosition(0.0f, 5.0f,-10.0f);
-VECTOR3D lightPosition(-2.0f, 3.0f,-2.0f);
+VECTOR3D cameraPosition(0.0f, 2.0f,-5.0f);
+VECTOR3D lightPosition(-2.0f, 6.0f,-5.0f);
 float angle = 0;
 
 // Light pos
@@ -469,45 +469,41 @@ void updatePlayerMouseMovement() {
         glReadPixels( player.mouse.x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
         
         // get world coord based on mouse
-        gluUnProject( winX, winY, winZ, modelview, projection, viewport, &worldX, &worldY, &worldZ);
+        gluUnProject( winX, winY, 0, modelview, projection, viewport, &worldX, &worldY, &worldZ);
         //printf("world cord at %f,%f,%f\n",worldX,worldY, worldZ);
         
-        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        glVertex3f(worldX,worldY,worldZ);
-        
-        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        glVertex3f(worldX,player.pos.y,worldZ);
         
         
-        
-        player.angle = computeAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         // Debug mouse angle
-        //        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        //        glDisable(GL_LIGHTING);
-        //
-        //        // miring
-        //        glBegin(GL_LINES);
-        //        glColor3f(1,1,0);
-        //        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        //        glVertex3f(worldX,worldY,worldZ);
-        //        glEnd();
-        //
-        //
-        //        // y
-        //        glBegin(GL_LINES);
-        //        glColor3f(0,1,0);
-        //        glVertex3f(worldX,player.pos.y,player.pos.z);
-        //        glVertex3f(worldX,worldY,worldZ);
-        //        glEnd();
-        //
-        //        // x
-        //        glBegin(GL_LINES);
-        //        glColor3f(1,0,0);
-        //        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-        //        glVertex3f(worldX,player.pos.y,worldZ);
-        //        glEnd();
-        //        glPopAttrib();
+                glPushAttrib(GL_ALL_ATTRIB_BITS);
+                glDisable(GL_LIGHTING);
+        
+                // miring
+//                glBegin(GL_LINES);
+//                glColor3f(1,1,0);
+//                glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+//                glVertex3f(worldX,worldY,worldZ);
+//                glEnd();
+//        
+//        
+//                // y
+//                glBegin(GL_LINES);
+//                glColor3f(0,1,0);
+//                glVertex3f(worldX,player.pos.y,0);
+//                glVertex3f(worldX,worldY,0);
+//                glEnd();
+        
+                // x
+                glBegin(GL_LINES);
+                glColor3f(1,0,0);
+                glVertex3f(player.pos.x,player.pos.y,0);
+                glVertex3f(worldX,worldY,0);
+                glEnd();
+                glPopAttrib();
+
+        
+        //player.angle = computeAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         
     }
@@ -726,6 +722,8 @@ void drawTerrain() {
 }
 
 void drawWater() {
+    glColor3f(0.0f, 0.0f, 1.0f);
+    
     glPushMatrix();
     //setMaterial(matCopper);
     
@@ -733,13 +731,23 @@ void drawWater() {
     //glColor3d(1,0,0);
     
     glBegin(GL_QUADS);
-    glVertex3f(-10.0f, -2.0f, -10.0f);
-    glVertex3f( 10.0f, -2.0f, -10.0f);
-    glVertex3f( 10.0f, -5.0f, 10.0f);
-    glVertex3f(-10.0f, -5.0f, 10.0f);
+    glVertex3f(-10.0f, 0.0f, 0.0f);
+    glVertex3f( -10.0f, 0.0f, 10.0f);
+    glVertex3f( 10.0f, 0.0f, 10.0f);
+    glVertex3f(10.0f, 0.0f, 0.0f);
     glEnd();
     
+    //glScalef(10.0f, 1.0f, 10.0f);
+    //glutSolidCube(2.0f);
+    
+    
     glPopMatrix();
+    
+    
+    //glPushMatrix();
+    //glScalef(1.0f, 0.05f, 1.0f);
+    
+    //glPopMatrix();
     
 }
 
@@ -923,33 +931,45 @@ void drawEnemies()
 void drawPlayer()
 {
     if(!player.isDead) {
-        // Movement
-        updatePlayerMouseMovement();
-        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-        player.pos = moveVec[0];
-        player.move = moveVec[1];
-        
-        // TEXTURE AND MATERIAL
         glPushMatrix();
-        //glEnable( GL_TEXTURE_2D );
-        //glBindTexture( GL_TEXTURE_2D, texArmy );
-        //setMaterial(matChrome);
-        
-        // Apply movement
-        glTranslated(player.pos.x, player.pos.y, 0);
-        
-        // Apply seamless rotation
-        glRotatef(player.angle, 0, 0, 1);
-        if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
-        else if (player.angle > 135) glRotatef(180, 1, 0, 0);
-        
-        if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
-        else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
-        
-        glutSolidTeapot(0.4);
-
-        
+        glTranslatef(player.pos.x, player.pos.y, 0.0f);
+        glutSolidSphere(0.2, 24, 24);
         glPopMatrix();
+        
+//        // Movement
+//        updatePlayerMouseMovement();
+//        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+//        player.pos = moveVec[0];
+//        player.move = moveVec[1];
+//        
+//        // TEXTURE AND MATERIAL
+//       
+//        glPushMatrix();
+//        //glEnable( GL_TEXTURE_2D );
+//        //glBindTexture( GL_TEXTURE_2D, texArmy );
+//        //setMaterial(matChrome);
+//        
+//        
+//        
+//        
+//        
+//        
+//        // Apply movement
+//        glTranslated(player.pos.x, player.pos.y, 0);
+//        
+//        // Apply seamless rotation
+//        glRotatef(player.angle, 0, 0, 1);
+//        if(player.angle > 45 && player.angle <= 135)  glRotatef((player.angle - 45) * 2, 1, 0, 0);
+//        else if (player.angle > 135) glRotatef(180, 1, 0, 0);
+//        
+//        if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
+//        else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
+//        
+//        
+//        glutSolidTeapot(0.4);
+//
+//        
+//        glPopMatrix();
     }
     
 }
@@ -1154,7 +1174,7 @@ void display( )
     
     
     // Environments
-    drawSky();
+    //drawSky();
     //drawMountains();
     //drawTerrain();
     //drawWater();
@@ -1170,43 +1190,39 @@ void display( )
     //drawBullets();
     
     
-    glColor3f(0.0f, 1.0f, 0.0f);
+    // NEW
+    
+    
+    // Water
+    drawWater();
+    
+    
+    // Units
+   
+   // glColor3f(0.0f, 1.0f, 0.0f);
+//    glPushMatrix();
+//    glTranslatef(0.4f, 1.0f, 0.0f);
+//    glutSolidSphere(0.2, 24, 24);
+//    glPopMatrix();
+//    
+//    glPushMatrix();
+//    glTranslatef(-0.5f, 1.0f, 0.0f);
+//    glutSolidSphere(0.2, 24, 24);
+//    
+//    glPopMatrix();
+    
+    
     glPushMatrix();
     
-    glTranslatef(0.45f, 1.0f, 0.45f);
-    
-    glutSolidSphere(0.2, 24, 24);
-    
-    glTranslatef(-0.9f, 0.0f, 0.0f);
-    glutSolidSphere(0.2, 24, 24);
-    
-    glTranslatef(0.0f, 0.0f,-0.9f);
-    glutSolidSphere(0.2, 24, 24);
-    
+    // make all unit relatively in the center of the screen
+    glTranslated(-1,0.0,0);
     drawPlayer();
     
-    glTranslatef(0.9f, 0.0f, 5.0f);
-    //glutSolidSphere(0.2, 24, 24);
-    glutSolidCube (5);
     glPopMatrix();
     
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glPushMatrix();
-    
-    glTranslatef(0.0f, 0.5f, 0.0f);
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-    //glutSolidTeapot(0.2);
-    
-    glPopMatrix();
-    
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glPushMatrix();
     
     
-    glScalef(1.0f, 0.05f, 1.0f);
-    glutSolidCube(3.0f);
     
-    glPopMatrix();
     
     
     
@@ -1451,7 +1467,7 @@ void init()
     
     glLoadIdentity();
     gluLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
-              0.0f, 0.0f, 0.0f,
+              0.0f, 0.0f, 5.0f,
               0.0f, 1.0f, 0.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
     
@@ -1500,7 +1516,7 @@ void init()
     generateMountains(-worldLimitX, worldLimitX*20);
     
     // Initialize player
-    player.pos = glm::vec3(-2,0,0);
+    player.pos = glm::vec3(1,1,0);
     player.move = player.pos;
     player.acceleration = 0.5;
     player.hp = 20;
@@ -1863,7 +1879,7 @@ void reshape(int w, int h)
     //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     //gluPerspective (50, (float)w/h, 1, 10);
     //gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    gluPerspective(15.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
     glPopMatrix();
 }

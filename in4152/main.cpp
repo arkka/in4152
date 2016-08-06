@@ -731,10 +731,10 @@ void drawWater() {
     //glColor3d(1,0,0);
     
     glBegin(GL_QUADS);
-    glVertex3f(-10.0f, 0.0f, 0.0f);
+    glVertex3f(-10.0f, 0.0f, -10.0f);
     glVertex3f( -10.0f, 0.0f, 10.0f);
     glVertex3f( 10.0f, 0.0f, 10.0f);
-    glVertex3f(10.0f, 0.0f, 0.0f);
+    glVertex3f(10.0f, 0.0f, -10.0f);
     glEnd();
     
     //glScalef(10.0f, 1.0f, 10.0f);
@@ -930,12 +930,12 @@ void drawEnemies()
 
 void drawPlayer()
 {
-    
-        setMaterial(matChrome);
-        glPushMatrix();
-        glTranslatef(player.pos.x, player.pos.y, 0.0f);
-        glutSolidSphere(0.2, 24, 24);
-        glPopMatrix();
+    glColor3f(0.0f, 1.0f, 0.0f);
+    setMaterial(matChrome);
+    glPushMatrix();
+    glTranslatef(player.pos.x, player.pos.y, 0.0f);
+    glutSolidSphere(0.2, 24, 24);
+    glPopMatrix();
         
 
 //        
@@ -1210,22 +1210,11 @@ void display( )
     
     
     glPushMatrix();
-    
-    // make all unit relatively in the center of the screen
     glTranslated(-1,0.0,0);
+    
     drawPlayer();
-    
     glPopMatrix();
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
 }
 
@@ -1700,7 +1689,21 @@ bool loadMesh(const char * filename)
     return true;
 }
 
+void animate( )
+{
+    // GAME LOGIC
+    
+    if(!player.isDead) {
+        // Movement
+        updatePlayerMouseMovement();
+        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+        player.pos = moveVec[0];
+        player.move = moveVec[1];
+        
+    }
+    
 
+}
 
 /**
  * Programme principal
@@ -1727,7 +1730,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(displayInternal);
     glutMouseFunc(mouseClick);    // traqueboule utilise la souris
     glutPassiveMotionFunc(mouseMotion);  // traqueboule utilise la souris
-    //glutIdleFunc(animate);
+    glutIdleFunc(animate);
     
     // lancement de la boucle principale
     glutMainLoop();
@@ -1742,22 +1745,6 @@ int main(int argc, char** argv)
 // Ne pas changer
 void displayInternal(void)
 {
-    // GAME LOGIC
-    
-    if(!player.isDead) {
-     // Movement
-     updatePlayerMouseMovement();
-     std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-     player.pos = moveVec[0];
-     player.move = moveVec[1];
-
-    }
-
-    
-    // END OF GAME LOGIC
-    
-    
-    
     // Display routine
     // Effacer tout
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z

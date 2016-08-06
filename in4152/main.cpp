@@ -930,13 +930,7 @@ void drawEnemies()
 
 void drawPlayer()
 {
-    if(!player.isDead) {
-       // Movement
-       updatePlayerMouseMovement();
-       std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-       player.pos = moveVec[0];
-       player.move = moveVec[1];
-        
+    
         setMaterial(matChrome);
         glPushMatrix();
         glTranslatef(player.pos.x, player.pos.y, 0.0f);
@@ -973,7 +967,7 @@ void drawPlayer()
 //
 //        
 //        glPopMatrix();
-    }
+
     
 }
 
@@ -1236,14 +1230,6 @@ void display( )
 }
 
 
-/**
- * Animation
- */
-void animate( )
-{
-    //tri_x = tri_x + inc;
-}
-
 
 /**
  * Mouse
@@ -1463,6 +1449,8 @@ void init()
     // calculate and save matrices
     glPushMatrix();
     
+    
+    
     glLoadIdentity();
     //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
@@ -1515,7 +1503,7 @@ void init()
     worldLimitX = 8;
     worldLimitY = 3;
     
-    // Iniialize Mountains
+    // Initialize Mountains
     generateMountains(-worldLimitX, worldLimitX*20);
     
     // Initialize player
@@ -1739,7 +1727,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(displayInternal);
     glutMouseFunc(mouseClick);    // traqueboule utilise la souris
     glutPassiveMotionFunc(mouseMotion);  // traqueboule utilise la souris
-    glutIdleFunc(animate);
+    //glutIdleFunc(animate);
     
     // lancement de la boucle principale
     glutMainLoop();
@@ -1754,6 +1742,23 @@ int main(int argc, char** argv)
 // Ne pas changer
 void displayInternal(void)
 {
+    // GAME LOGIC
+    
+    if(!player.isDead) {
+     // Movement
+     updatePlayerMouseMovement();
+     std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+     player.pos = moveVec[0];
+     player.move = moveVec[1];
+
+    }
+
+    
+    // END OF GAME LOGIC
+    
+    
+    
+    // Display routine
     // Effacer tout
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z
     
@@ -1879,10 +1884,7 @@ void reshape(int w, int h)
     //Update the camera's projection matrix
     glPushMatrix();
     glLoadIdentity();
-    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
-    //gluPerspective (50, (float)w/h, 1, 10);
-    //gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    gluPerspective(15.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
     glPopMatrix();
 }

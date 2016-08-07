@@ -32,10 +32,6 @@
 #include <string.h>
 #include <vector>
 
-#include "linalg.h"    // typical 3D math routines following hlsl style for the most part
-using namespace linalg::aliases;
-#include "geometric.h"
-
 
 /**
  * Data Model

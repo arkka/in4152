@@ -10,6 +10,7 @@
 #include <windows.h>
 #endif
 
+#include "GLee/GLee.h"
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -143,10 +144,14 @@ float angle = 0;
 //GLfloat lightPosition[]= { 8.0f, 20.0f, 20.0f, 1.0f };
 GLfloat lightDiffuse[] = {1.0, 1.0, 0.0, 1.0};
 GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
-GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
+GLfloat lightAmbient[] = {0.2, 0.2, 0.2, 0.2};
 GLfloat lightShininess[] = { 50.0 };
-
 GLfloat globalAmbient[] = { 0.2, 0.2, 0.2, 1.0 };
+
+// Shadow Map
+const int shadowMapSize=512;
+MATRIX4X4 lightProjectionMatrix, lightViewMatrix;
+MATRIX4X4 cameraProjectionMatrix, cameraViewMatrix;
 
 // Declare your own global variables here:
 
@@ -206,6 +211,7 @@ GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
+GLuint texShadow;
 GLuint texSky, texWater, texGrass, texStone, texTail;
 GLuint	texWhite, texArmy, texArmyArm, texArmyHead, texGreen, texAluminium, texBullet, texSkull;
 
@@ -1709,8 +1715,76 @@ bool simplifyMesh();
 
 void init()
 {
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+    if(!GLEE_ARB_depth_texture || !GLEE_ARB_shadow)
+    {
+        printf("I require ARB_depth_texture and ARB_shadow extensionsn\n");
+    }
+    
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    
+    glShadeModel(GL_SMOOTH);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    // Depth states
+    glClearDepth(1.0f);
+    
+    glDepthFunc(GL_LEQUAL);
+    glEnable( GL_DEPTH_TEST );
+    
+    
+    glEnable(GL_CULL_FACE);
+    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    
+    
+    glEnable(GL_NORMALIZE);
+    
+    // Shadow
+    glGenTextures(1, &texShadow);
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glTexImage2D(   GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0,
+                 GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, lightSpecular);
+    glMaterialf(GL_FRONT, GL_SHININESS, 16.0f);
+    
+    // calculate and save matrices
+    glPushMatrix();
+    
+    
+    
+    glLoadIdentity();
+    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
+    
+    glLoadIdentity();
+    gluLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
+              0.0f, 0.0f, 5.0f,
+              0.0f, 1.0f, 0.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
+    
+    glLoadIdentity();
+    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+    gluPerspective(45.0f, 1.0f, 2.0f, 8.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix);
+    
+    glLoadIdentity();
+    gluLookAt(  lightPosition.x, lightPosition.y, lightPosition.z,
+              0.0f, 0.0f, 0.0f,
+              0.0f, 1.0f, 0.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, lightViewMatrix);
+    
+    glPopMatrix();
     
     // Texture
     texWhite = loadTexture("textures/white.bmp");

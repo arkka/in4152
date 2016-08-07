@@ -161,10 +161,11 @@ GLfloat mountainX = 0;
 
 // Mesh
 std::vector<float> MeshVertices, MeshVerticesDist, MeshVerticesCollapse;
-std::vector<unsigned int> MeshTriangles, SimplifiedMeshTriangles;
+std::vector<unsigned int> MeshTriangles;
 
 // Mesh Simplification
 std::vector<float> SimplifiedMeshVertices; // old format
+std::vector<unsigned int> SimplifiedMeshTriangles; // old format
 std::vector<glm::vec3> SMeshVertices; // new format using vec3
 std::vector<std::vector<glm::vec3>> SMeshTriangles, SMeshFaces; // new format using vec3
 std::vector<std::vector<glm::vec3>> SMeshVerticesNeighbors;
@@ -601,6 +602,7 @@ void drawLight() {
     glPopMatrix();
 }
 
+// TODO: recheck again
 bool simplifyMesh() {
     printf("\n Original Vertices: %lu", MeshVertices.size()/3);
     printf("\n Original Triangles: %lu \n", MeshTriangles.size()/3);
@@ -701,7 +703,7 @@ bool simplifyMesh() {
                 }
                 
                 
-                // STILL LOT OF BUG USING THIS APPROACH.. too many looping.. :(
+                // NEED TO BE RECHECKED.. too many looping.. :(
                 for (unsigned int k = 0; k<SMeshFaces[i].size(); k++) {
                     float mincurv=1; // curve for face i and closer side to it
                     for (unsigned int l = 0; l<sides.size(); l++) {
@@ -713,12 +715,11 @@ bool simplifyMesh() {
                 
                 dist = edgelength * curvature;
                 
-                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
+//                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
                 
                 if(dist<SMeshVerticesDistance[i]) {
-                    
-                    v->collapse=v->neighbor[i];  // candidate for edge collapse
-                    v->objdist=dist;             // cost of the collapse
+                    SMeshVerticesDistance[i] = dist;
+                    SMeshVerticesCollapse[i] = true;
                 }
                 
             }
@@ -730,23 +731,7 @@ bool simplifyMesh() {
     
     printf("TRUE: %i, FALSE: %i\n", debugTrue, debugFalse);
     
-    // Export back to old format/variable
     
-    //for(
-    
-    
-//
-//    int numReductions = 0;
-//    // Last, ported ti back to old format :D
-//    for (unsigned int i = 0; i < SMeshVertices.size(); i++) {
-//        //printf("Distance %f\n",SMeshVerticesDistance[i]);
-//        if(SMeshVerticesCollapse[i]) numReductions++;
-//    }
-//    
-//    printf("Simplified Vertices: %lu \n", SMeshVertices.size());
-//    printf("Simplified Vertices reduction: %i \n", numReductions);
-    
-   
     
     return true;
 }

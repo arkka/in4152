@@ -134,8 +134,8 @@ unsigned int screenWidth = 1920;  // screen width
 unsigned int screenHeight = 800;  // screen height
 
 // Camera
-VECTOR3D cameraPosition(0.0f, 2.0f,-5.0f);
-VECTOR3D lightPosition(-2.0f, 6.0f,-5.0f);
+VECTOR3D cameraPosition(0.0f, 2.0f,5.0f);
+VECTOR3D lightPosition(2.0f, 6.0f,5.0f);
 float angle = 0;
 
 
@@ -1208,14 +1208,6 @@ void drawCube(){
 
 void drawPlayer()
 {
-    if(!player.isDead) {
-        // Movement
-        updatePlayerMouseMovement();
-        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
-        player.pos = moveVec[0];
-        player.move = moveVec[1];
-        
-
         glPushMatrix();
         // Apply movement
         glTranslated(player.pos.x, player.pos.y, 0);
@@ -1336,7 +1328,7 @@ void drawPlayer()
         
         
         glPopMatrix();
-    }
+    
     
 }
 
@@ -1482,27 +1474,21 @@ void display( )
 //    drawBoss();
 //    drawBullets();
     
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glPushMatrix();
-        glTranslatef(0.4f, 1.0f, 0.0f);
-        glutSolidSphere(0.2, 24, 24);
-        glPopMatrix();
+    //glColor3f(1.0f, 0.0f, 1.0f);
+    glPushMatrix();
+    glTranslatef(0.4f, 1.0f, 0.0f);
+    glutSolidSphere(0.2, 24, 24);
+    glPopMatrix();
     
-        glPushMatrix();
-        glTranslatef(-0.5f, 1.0f, 0.0f);
-        glutSolidSphere(0.2, 24, 24);
-        		
-        glPopMatrix();
+    glPushMatrix();
+    glTranslatef(-0.5f, 1.0f, 0.0f);
+    glutSolidSphere(0.2, 24, 24);
+    glPopMatrix();
     
     glPushMatrix();
     glTranslated(-1,0.0,0);
     drawPlayer();
     glPopMatrix();
-    
-    
-    
-    //glFlush ();
-    
     
     
 }
@@ -1513,6 +1499,16 @@ void display( )
  */
 void animate( )
 {
+    // Player
+    if(!player.isDead) {
+        // Movement
+        updatePlayerMouseMovement();
+        std::vector<glm::vec3> moveVec = computeMovement(player.pos, player.move, true);
+        player.pos = moveVec[0];
+        player.move = moveVec[1];
+    }
+    
+    // Enemies
     curEnemies = 0;
     for(int i=0;i<enemies.size();i++){
         if(enemies[i].isDead==false) curEnemies++;
@@ -2088,7 +2084,7 @@ void displayInternal(void)
     glViewport(0, 0, shadowMapSize, shadowMapSize);
     
     //Draw back faces into the shadow map
-    //glCullFace(GL_FRONT);
+    glCullFace(GL_FRONT);
     
     glShadeModel(GL_FLAT);
     glColorMask(0, 0, 0, 0);
@@ -2188,28 +2184,58 @@ void displayInternal(void)
     glDisable(GL_LIGHTING);
     glDisable(GL_ALPHA_TEST);
     
+    
+    // END OF SHADOW :)
+    
+
+    
+    //glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
+    //glDepthMask(GL_FALSE);
+    
+    glPushMatrix();
+    
+    // Let it be light..
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT1);
+    
+    glCullFace(GL_FRONT_AND_BACK);
+    // Bind shadow texture
+    glBindTexture(GL_TEXTURE_2D, texArmy);
+    glEnable(GL_TEXTURE_2D);
+
+    
+    
+     display();
+    
+    
+    glPopMatrix();
+   
+    
     glFinish();
+    
     glutSwapBuffers();
     glutPostRedisplay();
+    
+    
 }
 // pour changement de taille ou desiconification
-//void reshape(int w, int h)
-//{
-//    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
-//    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
-//    //gluPerspective (50, (float)w/h, 1, 10);
-//    glMatrixMode(GL_MODELVIEW);
-//}
 void reshape(int w, int h)
 {
-    screenWidth=w, screenHeight=h;
-    
-    //Update the camera's projection matrix
-    glPushMatrix();
+    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
-    glPopMatrix();
+    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+    //gluPerspective (50, (float)w/h, 1, 10);
+    glMatrixMode(GL_MODELVIEW);
 }
+//void reshape(int w, int h)
+//{
+//    screenWidth=w, screenHeight=h;
+//    
+//    //Update the camera's projection matrix
+//    glPushMatrix();
+//    glLoadIdentity();
+//    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+//    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
+//    glPopMatrix();
+//}

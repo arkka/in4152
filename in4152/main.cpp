@@ -11,7 +11,6 @@
 #endif
 
 
-
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <OpenGL/gl.h>
@@ -22,18 +21,22 @@
 #include <GL/gl.h>
 #endif
 
-#include "SOIL/SOIL.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "trackball.h"
-#include "argumentParser.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+
+// Common library
+#include "SOIL/SOIL.h"
+#include "Maths/Maths.h"
+#include "trackball.h"
+#include "argumentParser.h"
+
+
 
 /**
  * Data Model
@@ -129,10 +132,15 @@ DisplayModeType DisplayMode = TRIANGLE;
 unsigned int screenWidth = 1920;  // screen width
 unsigned int screenHeight = 800;  // screen height
 
+// Camera
+VECTOR3D cameraPosition(0.0f, 2.0f,-5.0f);
+VECTOR3D lightPosition(-2.0f, 6.0f,-5.0f);
+float angle = 0;
+
 
 // Light pos
 //GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
-GLfloat lightPosition[]= { 8.0f, 20.0f, 20.0f, 1.0f };
+//GLfloat lightPosition[]= { 8.0f, 20.0f, 20.0f, 1.0f };
 GLfloat lightDiffuse[] = {1.0, 1.0, 0.0, 1.0};
 GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
 GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
@@ -614,10 +622,10 @@ void drawCoordSystem(float length=1)
 }
 
 void drawLight() {
-    glPushMatrix();
-    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
-    glutSolidSphere(1,10,10);
-    glPopMatrix();
+//    glPushMatrix();
+//    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
+//    glutSolidSphere(1,10,10);
+//    glPopMatrix();
 }
 
 // TODO: recheck again
@@ -1606,30 +1614,6 @@ void keyboard(unsigned char key, int x, int y)
             player.move.y += player.acceleration;
             break;
             
-        case 'i':
-            //turn AA on
-            lightPosition[0] += 1.00;
-            break;
-        case 'I':
-            //turn AA off
-            lightPosition[0] -= 1.00;
-            break;
-        case 'o':
-            //turn AA on
-            lightPosition[1] += 1.00;
-            break;
-        case 'O':
-            //turn AA off
-            lightPosition[1] -= 1.00;
-            break;
-        case 'p':
-            //turn AA on
-            lightPosition[2] += 1.00;
-            break;
-        case 'P':
-            //turn AA off
-            lightPosition[2] -= 1.00;
-            break;
         case 'r':
             //player respawn
             player.isDead = false;
@@ -1641,7 +1625,7 @@ void keyboard(unsigned char key, int x, int y)
             
     }
     
-    printf("light pos %f,%f,%f\n", lightPosition[0], lightPosition[1], lightPosition[2]);
+    
 }
 
 void keyboardSpecial(int key, int x, int y) {

@@ -32,6 +32,11 @@
 #include <string.h>
 #include <vector>
 
+#include "linalg.h"    // typical 3D math routines following hlsl style for the most part
+using namespace linalg::aliases;
+#include "geometric.h"
+
+
 /**
  * Data Model
  */
@@ -129,7 +134,7 @@ unsigned int screenHeight = 800;  // screen height
 
 // Light pos
 //GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
-GLfloat lightPosition[]= { 5.0f, 20.0f, 40.0f, 1.0f };
+GLfloat lightPosition[]= { 8.0f, 20.0f, 20.0f, 1.0f };
 GLfloat lightDiffuse[] = {1.0, 1.0, 0.0, 1.0};
 GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
 GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
@@ -149,6 +154,14 @@ std::vector<struct Enemy> enemies;
 int maxEnemies = 5;
 int curEnemies = maxEnemies;
 bool isBoss = false;
+
+
+float recoilX = 0;
+float recoilY = 0;
+float recoilMoveX = 0;
+float recoilMoveY = 0;
+float recoilAnimation = 0;
+float recoilEasing = 0.25;
 
 // Options
 bool antiAlias = false;
@@ -187,16 +200,16 @@ GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
-GLuint texSky, texWater, texGrass, texStone;
-GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet, texSkull;
+GLuint texSky, texWater, texGrass, texStone, texTail;
+GLuint	texWhite, texArmy, texArmyArm, texArmyHead, texGreen, texAluminium, texBullet, texSkull;
 
 // Material
 struct Material matArmy {
-    {1.000000, 1.000000, 1.000000}, // Ka
-    {0.640000, 0.640000, 0.640000}, // Kd
-    {0.5, 0.5, 0.5}, // Ks
-    {0.0, 0.0, 0.0, 1.0}, //Ke
-    0.1 // n
+    {0.200000, 0.20000, 0.20000}, // Ka
+    {0.20000, 0.20000, 0.20000}, // Kd
+    {0.8, 0.8, 0.8}, // Ks
+    {0.0, 0.3, 0.0, 1.0}, //Ke
+    0.4 // n
 };
 
 struct Material matStone {
@@ -306,7 +319,7 @@ GLuint loadTexture(const char* texture)                                    // Lo
 
 void generateMountains(float start, float end) {
     // big mountain
-
+    
     
     float width = 10;
     for(int x = start;x<end;x++) {
@@ -320,7 +333,7 @@ void generateMountains(float start, float end) {
             };
             mountains.push_back(mountain);
         }
-       
+        
     }
     
     // medium mountain
@@ -338,9 +351,9 @@ void generateMountains(float start, float end) {
         }
         
     }
-
     
-
+    
+    
 }
 void drawMountain(glm::vec3 peak, float width, GLuint texId) {
     glm::vec3 start = glm::vec3(peak.x - width/2,0,peak.z);
@@ -350,7 +363,7 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
     float sliceX = distance.x / 360;
     
     glm::vec3 vert = start;
-
+    
     //glRotated(xrot, 1, 0, 0);
     //xrot++;
     //glRotated(45, 0, 1, 0);
@@ -361,10 +374,10 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
     setMaterial(matStone);
     
     int slice = 4;
-
+    
     for(int curSlice = 0; curSlice<slice; curSlice++){
         vert = start;
-    
+        
         glBegin(GL_QUAD_STRIP);
         
         for(float i=0;i<=360;i+=1)
@@ -385,7 +398,7 @@ void drawMountain(glm::vec3 peak, float width, GLuint texId) {
         }
         glEnd();
     }
-
+    
 }
 void drawMountains() {
     // Mountain consists of three layers: large mountain, medium, and some small/hills
@@ -393,7 +406,7 @@ void drawMountains() {
     glPushMatrix();
     mountainX-= 0.01;
     glTranslated(mountainX, -1, 0);
-
+    
     for(int i=0;i<mountains.size();i++) {
         glPushMatrix();
         glRotated(mountains[i].rot, 0, 1, 0);
@@ -451,10 +464,10 @@ float computeAngle(glm::vec2 v1, glm::vec2 v2)
 void updatePlayerMouseMovement() {
     // Limit motion to screen size
     if((player.mouse.y<=screenHeight && player.mouse.y>=0)&&(player.mouse.x<=screenWidth && player.mouse.x>=0)){
-  
+        
         //printf("cord at %f,%f\n",player.mouse.x,player.mouse.y);
         
-
+        
         glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
         glGetDoublev( GL_PROJECTION_MATRIX, projection );
         glGetIntegerv( GL_VIEWPORT, viewport ); //Lokasi dari kamera [x,y,panjang,lebar]
@@ -472,38 +485,38 @@ void updatePlayerMouseMovement() {
         
         glVertex3f(player.pos.x,player.pos.y,player.pos.z);
         glVertex3f(worldX,player.pos.y,worldZ);
-
+        
         
         
         player.angle = computeAngle(glm::vec2(player.pos.x, player.pos.y), glm::vec2(worldX, worldY));
         
         // Debug mouse angle
-//        glPushAttrib(GL_ALL_ATTRIB_BITS);
-//        glDisable(GL_LIGHTING);
-//        
-//        // miring
-//        glBegin(GL_LINES);
-//        glColor3f(1,1,0);
-//        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-//        glVertex3f(worldX,worldY,worldZ);
-//        glEnd();
-//        
-//        
-//        // y
-//        glBegin(GL_LINES);
-//        glColor3f(0,1,0);
-//        glVertex3f(worldX,player.pos.y,player.pos.z);
-//        glVertex3f(worldX,worldY,worldZ);
-//        glEnd();
-//        
-//        // x
-//        glBegin(GL_LINES);
-//        glColor3f(1,0,0);
-//        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
-//        glVertex3f(worldX,player.pos.y,worldZ);
-//        glEnd();
-//        glPopAttrib();
-
+        //        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        //        glDisable(GL_LIGHTING);
+        //
+        //        // miring
+        //        glBegin(GL_LINES);
+        //        glColor3f(1,1,0);
+        //        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        //        glVertex3f(worldX,worldY,worldZ);
+        //        glEnd();
+        //
+        //
+        //        // y
+        //        glBegin(GL_LINES);
+        //        glColor3f(0,1,0);
+        //        glVertex3f(worldX,player.pos.y,player.pos.z);
+        //        glVertex3f(worldX,worldY,worldZ);
+        //        glEnd();
+        //
+        //        // x
+        //        glBegin(GL_LINES);
+        //        glColor3f(1,0,0);
+        //        glVertex3f(player.pos.x,player.pos.y,player.pos.z);
+        //        glVertex3f(worldX,player.pos.y,worldZ);
+        //        glEnd();
+        //        glPopAttrib();
+        
         
     }
 }
@@ -545,7 +558,7 @@ void fireBullet(glm::vec3 pos, glm::vec3 move, float angle, int type = 0, float 
         type, // type
         false, // isDestroyed
     };
-
+    
     
     bullets.push_back(bullet);
 }
@@ -607,9 +620,9 @@ bool simplifyMesh() {
     printf("\n Original Vertices: %lu", MeshVertices.size()/3);
     printf("\n Original Triangles: %lu \n", MeshTriangles.size()/3);
     
-//    for (unsigned int i = 0; i < MeshTriangles.size()/3; i ++) {
-//        printf("TRIANGLES: %i\n", MeshTriangles[i]);
-//    }
+    //    for (unsigned int i = 0; i < MeshTriangles.size()/3; i ++) {
+    //        printf("TRIANGLES: %i\n", MeshTriangles[i]);
+    //    }
     
     // 1. register to new format
     for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
@@ -652,14 +665,14 @@ bool simplifyMesh() {
             for(int k=0;k<3;k++) if(j!=k) {
                 long neighborsCount = std::count(SMeshVerticesNeighbors[i].begin(), SMeshVerticesNeighbors[i].end(), vertex[j]);
                 if(neighborsCount > 0) {
-//                    printf(" (%f,%f,%f \n) already registered\n", vertex[j].x, vertex[j].y, vertex[j].z);
-//                    
-//                    for(int l=0; l<SMeshVerticesNeighbors[i].size(); l++) {
-//                        printf("      -->  (%f,%f,%f)\n", SMeshVerticesNeighbors[i][l].x, SMeshVerticesNeighbors[i][l].y, SMeshVerticesNeighbors[i][l].z );
-//                    }
+                    //                    printf(" (%f,%f,%f \n) already registered\n", vertex[j].x, vertex[j].y, vertex[j].z);
+                    //
+                    //                    for(int l=0; l<SMeshVerticesNeighbors[i].size(); l++) {
+                    //                        printf("      -->  (%f,%f,%f)\n", SMeshVerticesNeighbors[i][l].x, SMeshVerticesNeighbors[i][l].y, SMeshVerticesNeighbors[i][l].z );
+                    //                    }
                     
                 } else {
-//                    printf(" (%f,%f,%f) == neighbors == (%f,%f,%f) \n", SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z, vertex[j].x, vertex[j].y, vertex[j].z );
+                    //                    printf(" (%f,%f,%f) == neighbors == (%f,%f,%f) \n", SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z, vertex[j].x, vertex[j].y, vertex[j].z );
                     SMeshVerticesNeighbors[i].push_back(vertex[j]);
                 }
             }
@@ -715,7 +728,7 @@ bool simplifyMesh() {
                 
                 dist = edgelength * curvature;
                 
-//                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
+                //                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
                 
                 if(dist<SMeshVerticesDistance[i]) {
                     SMeshVerticesDistance[i] = dist;
@@ -723,10 +736,10 @@ bool simplifyMesh() {
                 }
                 
             }
-    
+            
             
         }
-    
+        
     }
     
     printf("TRUE: %i, FALSE: %i\n", debugTrue, debugFalse);
@@ -796,6 +809,21 @@ void drawMesh(std::vector<float> MeshVertices, std::vector<unsigned int> MeshTri
     glPopMatrix();
 }
 
+void spawnEnemy() {
+    struct Enemy enemy {
+        glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
+        glm::vec3(0,0,0), // move
+        0, // angle
+        0.01, // acceleration
+        (int) randomRange(0, 5), // type
+        false, // is dead
+        5 // hp
+        
+    };
+    
+    enemies.push_back(enemy);
+}
+
 
 void drawSky() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -857,7 +885,7 @@ void drawWater() {
     glEnd();
     
     glPopMatrix();
-
+    
 }
 
 void drawBullets() {
@@ -866,18 +894,18 @@ void drawBullets() {
         
         
         // check boundary
-
+        
         if((bullets[i].pos.x >= worldLimitX)
            ||(bullets[i].pos.x <= -worldLimitX)
            ||(bullets[i].pos.y >= worldLimitY)
            ||(bullets[i].pos.y <= -worldLimitY)) {
             bullets[i].isDestroyed = true;
         }
-
+        
         if(!bullets[i].isDestroyed) {
             // Check collision
             
-           
+            
             if(bullets[i].type == 0) {
                 
                 if(!boss.isDead && checkCollide(bullets[i].pos, 0.1, 0.1, boss.pos[0], 0.5, 0.5)) {
@@ -886,6 +914,8 @@ void drawBullets() {
                     
                     if(boss.hp<=0) {
                         boss.hp = 0;
+                        
+                        spawnEnemy();
                         boss.isDead = true;
                     }
                     printf("Boss HP: %d/%d\n",boss.hp, 20);
@@ -903,7 +933,7 @@ void drawBullets() {
                             curEnemies--;
                         }
                         printf("Enemy HP: %d/%d\n",enemies[j].hp, 5);
-                        break;  
+                        break;
                     }
                 }
                 
@@ -919,43 +949,69 @@ void drawBullets() {
                 }
                 printf("Player HP: %d/%d\n",player.hp, 20);
             }
-
-
+            
+            
             
             
             
             
             bullets[i].pos.x += bullets[i].acceleration * cos(bullets[i].angle * M_PI / 180.0f);
             bullets[i].pos.y += bullets[i].acceleration * sin(bullets[i].angle * M_PI / 180.0f);
-           
-            glPushMatrix();
-
-            glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texBullet );
             
-
-            if(bullets[i].type == 0) setMaterial(matGold);
-            else if(bullets[i].type == 1) setMaterial(matRuby);
+            glPushMatrix();
+            
+            glEnable( GL_TEXTURE_2D );
+            
             
             glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
             glRotatef(bullets[i].angle,0,0,1);
             
-            glBegin(GL_QUADS);
-            glNormal3f(0,0,1);
-            glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.1f, 0.05f, 0.0f);
-            glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
-            
-            glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.02f, 0.0f);
-            glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.02f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
-            
-            glEnd();
-            
+            if(bullets[i].type == 0) {
+                
+                glBindTexture( GL_TEXTURE_2D, texBullet );
+
+                setMaterial(matGold);
+                
+                glBegin(GL_QUADS);
+                glNormal3f(0,0,1);
+                glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.1f, 0.05f, 0.0f);
+                glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
+                
+                glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.02f, 0.0f);
+                glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.02f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
+                
+                glEnd();
+
+            } else if(bullets[i].type == 1) {
+                 setMaterial(matRuby);
+                 glBindTexture( GL_TEXTURE_2D, texStone );
+                
+                glBegin(GL_QUADS);
+                glNormal3f(0,0,1);
+                glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.25f, -0.025f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.25f, 0.025f, 0.0f);
+                glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
+                
+                glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.025f, 0.0f);
+                glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.025f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
+                
+                glEnd();
+                
+                
+                
 
 
+            }
+            
+            
+            
             glPopMatrix();
         }
     }
@@ -1014,7 +1070,7 @@ void drawEnemies()
             // Draw
             glPushMatrix();
             glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texWhite );
+            glBindTexture( GL_TEXTURE_2D, texStone );
             setMaterial(matChrome);
             
             glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
@@ -1026,7 +1082,56 @@ void drawEnemies()
             if(enemies[i].angle < -45 && enemies[i].angle >= -135) glRotatef((enemies[i].angle + 45) * -2, 1, 0, 0);
             else if(enemies[i].angle < -135) glRotatef(-180, 1, 0, 0);
             
-            glutSolidTeapot(0.3);
+            //glutSolidTeapot(0.3);
+      
+            
+            float x, y, z, dTheta=180/5, dLon=360/5, degToRad=3.14/180, r = 0.25;
+            
+            
+            for(float lat =0 ; lat <=180 ; lat+=dTheta)
+            {
+                glBegin( GL_QUAD_STRIP ) ;
+                for(float lon = 0 ; lon <=360; lon+=dLon)
+                {
+                    
+                    x = r*cosf(lat * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf(lat * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf(lon * degToRad) ;
+                    
+                    glNormal3f( x, y, z) ;
+                    glTexCoord2f(x, 1.0f);
+                    glVertex3f( x, y, z ) ;
+                    
+                    x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf( lon * degToRad ) ;
+                    
+                    glNormal3f( x, y, z ) ;
+                    glTexCoord2f(x, z);
+                    glVertex3f( x, y, z ) ;
+                    
+                    
+                }
+                glEnd() ;
+                
+            }
+            
+            glPushMatrix();
+            
+            setMaterial(matRuby);
+            glBindTexture(GL_TEXTURE_2D, texWhite);
+            
+            glBegin(GL_QUADS);
+            glNormal3f(0,0,1);
+            glVertex3f(-0.1f, -0.1f, 0.20f);
+            glVertex3f( 0.1f, -0.1f, 0.20f);
+            glVertex3f( 0.1f, 0.1f, -0.20f);
+            glVertex3f(-0.1f, 0.1f, -0.20f);
+            
+            
+            glEnd();
+            
+            glPopMatrix();
             
             glPopMatrix();
         }
@@ -1037,6 +1142,48 @@ void drawEnemies()
     
 }
 
+
+
+void drawCube(){
+    glBegin(GL_QUADS);
+    // Front Face
+    
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Top Left Of The Texture and Quad
+    
+    // Back Face
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Bottom Left Of The Texture and Quad
+    // Top Face
+     glNormal3f(-0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  -0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+    // Bottom Face
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+    // Right face
+     glNormal3f(0.5f, -0.5f,  -0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  -0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+    // Left Face
+     glNormal3f(-0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  -0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glEnd();
+
+}
+
+
+
 void drawPlayer()
 {
     if(!player.isDead) {
@@ -1046,12 +1193,8 @@ void drawPlayer()
         player.pos = moveVec[0];
         player.move = moveVec[1];
         
-        // TEXTURE AND MATERIAL
+
         glPushMatrix();
-        glEnable( GL_TEXTURE_2D );
-        glBindTexture( GL_TEXTURE_2D, texArmy );
-        setMaterial(matChrome);
-        
         // Apply movement
         glTranslated(player.pos.x, player.pos.y, 0);
         
@@ -1063,7 +1206,112 @@ void drawPlayer()
         if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
         else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
         
-        glutSolidTeapot(0.4);
+        
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+        
+        
+        
+        // Head
+        glBindTexture(GL_TEXTURE_2D, texGreen);
+        GLUquadricObj *quadricObj = gluNewQuadric();
+        gluQuadricDrawStyle(quadricObj, GLU_FILL);
+        gluSphere(quadricObj, 0.4, 10, 10);
+        gluQuadricTexture(quadricObj, GL_TRUE);
+        
+        setMaterial(matGold);
+        glPushMatrix();
+        
+            glTranslatef(0, 0.5, 0);
+            float x, y, z, dTheta=180/10, dLon=360/10, degToRad=3.14/180, r = 0.5;
+        
+            
+            for(float lat =0 ; lat <=180 ; lat+=dTheta)
+            {
+                glBegin( GL_QUAD_STRIP ) ;
+                for(float lon = 0 ; lon <=360; lon+=dLon)
+                {
+                    
+                    x = r*cosf(lat * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf(lat * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf(lon * degToRad) ;
+                    
+                    glNormal3f( x, y, z) ;
+                    glTexCoord2f(x, 1.0f);
+                    glVertex3f( x, y, z ) ;
+                    
+                    x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf( lon * degToRad ) ;
+                    
+                    glNormal3f( x, y, z ) ;
+                    glTexCoord2f(x, z);
+                    glVertex3f( x, y, z ) ;
+                    
+                    
+                }
+                glEnd() ;
+                
+            }
+        
+        glBindTexture(GL_TEXTURE_2D, texAluminium);
+        setMaterial(matChrome);
+        glTranslated(-0.20, 0.25, 0);
+        glScaled(0.7, 0.6, 1);
+        drawCube();
+        
+        glPushMatrix();
+        glBindTexture(GL_TEXTURE_2D, texArmyHead);
+        setMaterial(matChrome);
+        glTranslated(0.75, 0.0, 0.0);
+        glScaled(0.5, 0.2, 0.6);
+        drawCube();
+        
+
+        
+        glPopMatrix();
+        
+        glPopMatrix();
+        
+        
+        
+        
+        glBindTexture(GL_TEXTURE_2D, texArmy);
+        setMaterial(matArmy);
+        
+        // Body
+        drawCube();
+        
+        
+        
+        
+        glBindTexture(GL_TEXTURE_2D, texArmyArm);
+        setMaterial(matArmy);
+        
+        glPushMatrix();
+        
+        if(recoilAnimation) {
+            glTranslated(recoilX, recoilY, 0);
+            glRotated(-45*recoilX, 0, 0, 1);
+        }
+
+        
+        glPushMatrix();
+        glScaled(1.5, 0.4, 0.25);
+        glTranslatef(0.25, 0, 2);
+        drawCube();
+        glPopMatrix();
+        
+        glPushMatrix();
+        glScaled(1.5, 0.4, 0.25);
+        glTranslatef(0.25, 0, -2);
+        drawCube();
+        glPopMatrix();
+        
+        glPopMatrix();
+        
+        
         
         glPopMatrix();
     }
@@ -1072,6 +1320,10 @@ void drawPlayer()
 
 void drawBossTail(float r, float divisions) {
     float x, y, z, dTheta=180/divisions, dLon=360/divisions, degToRad=3.14/180 ;
+    
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texTail);
+    //setMaterial(matChrome);
     
     for(float lat =0 ; lat <=180 ; lat+=dTheta)
     {
@@ -1084,6 +1336,7 @@ void drawBossTail(float r, float divisions) {
             z = r*cosf(lon * degToRad) ;
             
             glNormal3f( x, y, z) ;
+            glTexCoord2f(x, 1.0f);
             glVertex3f( x, y, z ) ;
             
             x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
@@ -1091,6 +1344,7 @@ void drawBossTail(float r, float divisions) {
             z = r*cosf( lon * degToRad ) ;
             
             glNormal3f( x, y, z ) ;
+            glTexCoord2f(x, 0.0f);
             glVertex3f( x, y, z ) ;
         }
         glEnd() ;
@@ -1109,7 +1363,7 @@ void drawBoss()
             // Suicide bomb!
             player.isDead = true;
         }
-
+        
         
         glEnable( GL_TEXTURE_2D );
         glBindTexture( GL_TEXTURE_2D, texArmy );
@@ -1124,7 +1378,7 @@ void drawBoss()
             
             // gravity
             
-        
+            
             // head
             if(i==0) {
                 
@@ -1151,7 +1405,7 @@ void drawBoss()
                 setMaterial(matSkull);
                 
                 drawMesh(bossVertices, bossTriangles);
-
+                
                 
             } else {
                 // gravity
@@ -1172,75 +1426,14 @@ void drawBoss()
             
             glPopMatrix();
         }
-    
-
+        
+        
     }
     
 }
 
 
-void drawCube(){
-    glPushMatrix();
-    
-    glRotated(xrot, 1, 0, 0);
-    glRotated(yrot, 0, 1, 0);
-    xrot+=1;
-    yrot+=1;
-    
-    glBindTexture(GL_TEXTURE_2D, texArmy);
-    
-    glBegin(GL_QUADS);
-    // Front Face
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 5.0f, -0.5f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 5.0f,  0.5f,  1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f,  0.5f,  1.0f);  // Top Left Of The Texture and Quad
-    
-    // Back Face
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
-    // Top Face
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    // Bottom Face
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    // Right face
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    // Left Face
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glEnd();
-     
-    glPopMatrix();
-}
 
-
-void spawnEnemy() {
-    struct Enemy enemy {
-        glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
-        glm::vec3(0,0,0), // move
-        0, // angle
-        0.01, // acceleration
-        (int) randomRange(0, 5), // type
-        false, // is dead
-        5 // hp
-        
-    };
-    
-    enemies.push_back(enemy);
-}
 
 
 
@@ -1277,13 +1470,13 @@ void display( )
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
     
     //drawCoordSystem();
-  
+    
     
     // Environments
     drawSky();
     drawMountains();
     //drawTerrain();
-    //drawWater();
+    drawWater();
     //drawCube();
     
     
@@ -1310,7 +1503,32 @@ void display( )
  */
 void animate( )
 {
-    //tri_x = tri_x + inc;
+    
+    
+    if(recoilAnimation == 1) {
+        
+        if(recoilMoveX < recoilX) {
+            float distanceX = recoilMoveX - recoilX;
+            recoilX += distanceX * recoilEasing;
+        } else {
+            recoilMoveX = 0;
+        }
+        
+        
+        if(recoilMoveX > recoilX) {
+            float distanceX = recoilMoveX - recoilX;
+            recoilX += distanceX * recoilEasing;
+        } else {
+            recoilMoveX = 0;
+        }
+        
+    }
+    
+
+
+    
+
+
 }
 
 
@@ -1323,6 +1541,9 @@ void mouseClick( int button, int state, int x, int y )
     if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN )
     {
         fireBullet(player.pos, glm::vec3(worldX,worldY,0),player.angle);
+        recoilMoveX = -1;
+        recoilAnimation = 1;
+        
         
         
     }
@@ -1356,7 +1577,7 @@ void keyboard(unsigned char key, int x, int y)
     {
         case 27:     // touche ESC
             exit(0);
-        
+            
         case 32:
             fireBullet(player.pos, glm::vec3(worldX,worldY,0),player.angle);
             break;
@@ -1409,7 +1630,7 @@ void keyboard(unsigned char key, int x, int y)
         case 'b':
             spawnBoss();
             break;
-
+            
     }
     
     printf("light pos %f,%f,%f\n", lightPosition[0], lightPosition[1], lightPosition[2]);
@@ -1501,15 +1722,18 @@ void init()
     
     // Texture
     texWhite = loadTexture("textures/white.bmp");
-    texGreen = loadTexture("textures/green.bmp");
+    texGreen = loadTexture("textures/green.jpg");
     
     texSky = loadTexture("textures/sky.jpg");
     texArmy = loadTexture("textures/army.bmp");
+    texArmyArm = loadTexture("textures/army-arm.jpg");
+    texArmyHead = loadTexture("textures/army-head.jpg");
     texStone = loadTexture("textures/stone.bmp");
     texGrass = loadTexture("textures/grass.bmp");
     texAluminium = loadTexture("textures/aluminium.bmp");
     texBullet = loadTexture("textures/bullet.png");
     texSkull = loadTexture("textures/skull.jpg");
+    texTail = loadTexture("textures/tail.jpg");
     
     glEnable(GL_NORMALIZE);
     
@@ -1522,7 +1746,7 @@ void init()
     
     
     
-//    // MESHES
+    //    // MESHES
     loadMesh("meshes/boss.obj");
     simplifyMesh();
     bossVertices =  MeshVertices;
@@ -1554,7 +1778,7 @@ void init()
     boss.hp = 20;
     boss.partNum = 20;
     boss.partDistance = 0.5;
-   
+    
 }
 
 
@@ -1757,9 +1981,9 @@ int main(int argc, char** argv)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glTranslatef(0,0,winZ);
-    tbInitTransform();     
+    tbInitTransform();
     tbHelp();
-
+    
     // cablage des callback
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
@@ -1805,4 +2029,3 @@ void reshape(int w, int h)
     //gluPerspective (50, (float)w/h, 1, 10);
     glMatrixMode(GL_MODELVIEW);
 }
-

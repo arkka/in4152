@@ -160,8 +160,17 @@ GLfloat mountainX = 0;
 
 
 // Mesh
-std::vector<float> MeshVertices;
-std::vector<unsigned int> MeshTriangles;
+std::vector<float> MeshVertices, MeshVerticesDist, MeshVerticesCollapse;
+std::vector<unsigned int> MeshTriangles, SimplifiedMeshTriangles;
+
+// Mesh Simplification
+std::vector<float> SimplifiedMeshVertices; // old format
+std::vector<glm::vec3> SMeshVertices; // new format using vec3
+std::vector<std::vector<glm::vec3>> SMeshTriangles, SMeshFaces; // new format using vec3
+std::vector<std::vector<glm::vec3>> SMeshVerticesNeighbors;
+std::vector<bool> SMeshVerticesCollapse; // new format using vec3
+std::vector<float> SMeshVerticesDistance; // new format using vec3
+
 
 std::vector<float> bossVertices, pokeVertices;
 std::vector<unsigned int> bossTriangles, pokeTriangles;
@@ -592,7 +601,155 @@ void drawLight() {
     glPopMatrix();
 }
 
-
+bool simplifyMesh() {
+    printf("\n Original Vertices: %lu", MeshVertices.size()/3);
+    printf("\n Original Triangles: %lu \n", MeshTriangles.size()/3);
+    
+//    for (unsigned int i = 0; i < MeshTriangles.size()/3; i ++) {
+//        printf("TRIANGLES: %i\n", MeshTriangles[i]);
+//    }
+    
+    // 1. register to new format
+    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
+        glm::vec3 vertex = glm::vec3(MeshVertices[MeshTriangles[i]],MeshVertices[MeshTriangles[i+1]],MeshVertices[MeshTriangles[i+2]]);
+        
+        // push
+        SMeshVertices.push_back(vertex);
+        
+        
+        std::vector<glm::vec3> smvn;
+        // push empty neighbor placeholder
+        SMeshVerticesNeighbors.push_back(smvn);
+        
+        // push faces
+        SMeshFaces.push_back(smvn);
+        
+        // push default colapse state
+        SMeshVerticesCollapse.push_back(false);
+        
+        // push default dist
+        SMeshVerticesDistance.push_back(1000000);
+    }
+    
+    printf("\n Simplified Vertices-1: %lu \n", SMeshVertices.size());
+    
+    // 2. build triangles
+    for (unsigned int i = 0; i < SMeshVertices.size(); i+= 3) {
+        std::vector<glm::vec3> vertex;
+        
+        // Triangle
+        vertex.push_back(SMeshVertices[i]);
+        vertex.push_back(SMeshVertices[i+1]);
+        vertex.push_back(SMeshVertices[i+2]);
+        
+        SMeshTriangles.push_back(vertex);
+        
+        for(int j=0;j<3;j++) {
+            SMeshFaces[i] = vertex;
+            
+            for(int k=0;k<3;k++) if(j!=k) {
+                long neighborsCount = std::count(SMeshVerticesNeighbors[i].begin(), SMeshVerticesNeighbors[i].end(), vertex[j]);
+                if(neighborsCount > 0) {
+//                    printf(" (%f,%f,%f \n) already registered\n", vertex[j].x, vertex[j].y, vertex[j].z);
+//                    
+//                    for(int l=0; l<SMeshVerticesNeighbors[i].size(); l++) {
+//                        printf("      -->  (%f,%f,%f)\n", SMeshVerticesNeighbors[i][l].x, SMeshVerticesNeighbors[i][l].y, SMeshVerticesNeighbors[i][l].z );
+//                    }
+                    
+                } else {
+//                    printf(" (%f,%f,%f) == neighbors == (%f,%f,%f) \n", SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z, vertex[j].x, vertex[j].y, vertex[j].z );
+                    SMeshVerticesNeighbors[i].push_back(vertex[j]);
+                }
+            }
+        }
+    }
+    
+    // 3. Determine cost on each vertex
+    
+    int debugTrue = 0;
+    int debugFalse = 0;
+    
+    for (unsigned int i = 0; i < SMeshVertices.size(); i++) {
+        if(SMeshVerticesNeighbors[i].size() == 0) {
+            // no neighbors
+            SMeshVerticesDistance[i] = -0.01f;
+            SMeshVerticesCollapse[i] = true;
+            
+            debugTrue++;
+            
+        } else {
+            SMeshVerticesDistance[i] = 1000000; //arbitrary max length
+            SMeshVerticesCollapse[i] = false;
+            
+            debugFalse++;
+            
+            for(int j=0;j< SMeshVerticesNeighbors[i].size();j++){
+                float dist;
+                
+                glm::vec3 diff = SMeshVerticesNeighbors[i][j] - SMeshVertices[i];
+                float edgelength = sqrtf(dot(diff, diff));
+                float curvature=0;
+                
+                
+                
+                
+                std::vector<glm::vec3> sides;
+                for (unsigned int k = 0; k<SMeshFaces[i].size(); k++) {
+                    if(SMeshFaces[i][k] == SMeshVerticesNeighbors[i][j]){
+                        sides.push_back(SMeshFaces[i][k]);
+                    }
+                }
+                
+                
+                // STILL LOT OF BUG USING THIS APPROACH.. too many looping.. :(
+                for (unsigned int k = 0; k<SMeshFaces[i].size(); k++) {
+                    float mincurv=1; // curve for face i and closer side to it
+                    for (unsigned int l = 0; l<sides.size(); l++) {
+                        float dotprod = dot(SMeshFaces[i][k] , sides[l]);	  // use dot product of face normals.
+                        mincurv = std::min(mincurv,(1-dotprod)/2.0f);
+                    }
+                    curvature = std::max(curvature, mincurv);
+                }
+                
+                dist = edgelength * curvature;
+                
+                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
+                
+                if(dist<SMeshVerticesDistance[i]) {
+                    
+                    v->collapse=v->neighbor[i];  // candidate for edge collapse
+                    v->objdist=dist;             // cost of the collapse
+                }
+                
+            }
+    
+            
+        }
+    
+    }
+    
+    printf("TRUE: %i, FALSE: %i\n", debugTrue, debugFalse);
+    
+    // Export back to old format/variable
+    
+    //for(
+    
+    
+//
+//    int numReductions = 0;
+//    // Last, ported ti back to old format :D
+//    for (unsigned int i = 0; i < SMeshVertices.size(); i++) {
+//        //printf("Distance %f\n",SMeshVerticesDistance[i]);
+//        if(SMeshVerticesCollapse[i]) numReductions++;
+//    }
+//    
+//    printf("Simplified Vertices: %lu \n", SMeshVertices.size());
+//    printf("Simplified Vertices reduction: %i \n", numReductions);
+    
+   
+    
+    return true;
+}
 
 void drawMesh(std::vector<float> MeshVertices, std::vector<unsigned int> MeshTriangles)
 {
@@ -1350,6 +1507,8 @@ void keyboardSpecialUp(int key, int x, int y) {
 void displayInternal(void);
 void reshape(int w, int h);
 bool loadMesh(const char * filename);
+bool simplifyMesh();
+
 void init()
 {
     glEnable(GL_LIGHTING);
@@ -1380,12 +1539,13 @@ void init()
     
 //    // MESHES
     loadMesh("meshes/boss.obj");
+    simplifyMesh();
     bossVertices =  MeshVertices;
     bossTriangles = MeshTriangles;
     
-    loadMesh("meshes/poke.obj");
-    pokeVertices =  MeshVertices;
-    pokeTriangles = MeshTriangles;
+    //loadMesh("meshes/poke.obj");
+    //pokeVertices =  MeshVertices;
+    //pokeTriangles = MeshTriangles;
     
     
     // Initialize scene

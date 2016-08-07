@@ -259,6 +259,13 @@ struct Material matGold {
     {0.0, 0.0, 0.0, 1.0},
     0.4 // n
 };
+struct Material matBlue {
+    {0.0,	0.0,	0.00}, // Ka
+    {0.1,	0.1,	0.35}, // Kd
+    {0.45,	0.45,	0.55}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
+    0.25 // n
+};
 
 struct Material matGreenBullet {
     {0.0,	0.0,	0.0}, // Ka
@@ -870,16 +877,19 @@ void drawTerrain() {
     glPopMatrix();
 }
 
-void drawWater() {
+void drawLand() {
     glPushMatrix();
-    //setMaterial(matCopper);
     
-    //glEnable(GL_COLOR);
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texGrass);
+    setMaterial(matGrass);
+    
+
     //glColor3d(1,0,0);
     
     glBegin(GL_QUADS);
-    glVertex3f(-10.0f, -2.0f, -10.0f);
-    glVertex3f( 10.0f, -2.0f, -10.0f);
+    glVertex3f(-10.0f, -1.0f, -10.0f);
+    glVertex3f( 10.0f, -1.0f, -10.0f);
     glVertex3f( 10.0f, -5.0f, 10.0f);
     glVertex3f(-10.0f, -5.0f, 10.0f);
     glEnd();
@@ -1476,7 +1486,7 @@ void display( )
     drawSky();
     drawMountains();
     //drawTerrain();
-    drawWater();
+    drawLand();
     //drawCube();
     
     

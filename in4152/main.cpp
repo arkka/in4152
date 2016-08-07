@@ -1464,52 +1464,40 @@ void drawBoss()
 void display( )
 {
     
-    // Game Logic
-    
-    curEnemies = 0;
-    for(int i=0;i<enemies.size();i++){
-        if(enemies[i].isDead==false) curEnemies++;
-    }
-    
-    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
-        spawnBoss();
-    }
-    
-    if(enemies.size() < maxEnemies && boss.isDead) {
-        spawnEnemy();
-    }
-    
-    
-    
-    // End of Game logic
-    
-    // Light
-    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
-    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);   // Specular
-    glLightfv(GL_LIGHT0, GL_SHININESS, lightShininess);   // Specular
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
-    
     //drawCoordSystem();
     
-    
     // Environments
-    drawSky();
-    drawMountains();
+    //drawSky();
+    //drawMountains();
     //drawTerrain();
-    drawLand();
+    //drawLand();
     //drawCube();
     
     
     // Units
     
     
-    drawPlayer();
-    drawEnemies();
-    drawBoss();
-    drawBullets();
+//    drawPlayer();
+//    drawEnemies();
+//    drawBoss();
+//    drawBullets();
     
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glPushMatrix();
+        glTranslatef(0.4f, 1.0f, 0.0f);
+        glutSolidSphere(0.2, 24, 24);
+        glPopMatrix();
+    
+        glPushMatrix();
+        glTranslatef(-0.5f, 1.0f, 0.0f);
+        glutSolidSphere(0.2, 24, 24);
+        		
+        glPopMatrix();
+    
+    glPushMatrix();
+    glTranslated(-1,0.0,0);
+    drawPlayer();
+    glPopMatrix();
     
     
     
@@ -1525,6 +1513,18 @@ void display( )
  */
 void animate( )
 {
+    curEnemies = 0;
+    for(int i=0;i<enemies.size();i++){
+        if(enemies[i].isDead==false) curEnemies++;
+    }
+    
+    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
+        spawnBoss();
+    }
+    
+    if(enemies.size() < maxEnemies && boss.isDead) {
+        spawnEnemy();
+    }
     
     
     if(recoilAnimation == 1) {
@@ -1769,7 +1769,7 @@ void init()
     
     glLoadIdentity();
     gluLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
-              0.0f, 0.0f, 5.0f,
+              0.0f, 0.0f, -5.0f,
               0.0f, 1.0f, 0.0f);
     glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
     
@@ -2035,7 +2035,7 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
     
     // couches du framebuffer utilisees par l'application
-    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_DEPTH );
+    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH );
     
     // position et taille de la fenetre
     glutInitWindowPosition(200, 100);
@@ -2045,11 +2045,11 @@ int main(int argc, char** argv)
     init( );
     
     // Initialize viewpoint
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0,0,winZ);
-    tbInitTransform();
-    tbHelp();
+//    glMatrixMode(GL_MODELVIEW);
+//    glLoadIdentity();
+//    glTranslatef(0,0,winZ);
+//    tbInitTransform();
+//    tbHelp();
     
     // cablage des callback
     glutReshapeFunc(reshape);
@@ -2074,25 +2074,142 @@ int main(int argc, char** argv)
 // Ne pas changer
 void displayInternal(void)
 {
+    // Display routine
     // Effacer tout
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z
     
-    glLoadIdentity();  // repere camera
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(lightProjectionMatrix);
     
-    tbVisuTransform(); // origine et orientation de la scene
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(lightViewMatrix);
     
-    display( );    
+    //Use viewport the same size as the shadow map
+    glViewport(0, 0, shadowMapSize, shadowMapSize);
     
+    //Draw back faces into the shadow map
+    //glCullFace(GL_FRONT);
+    
+    glShadeModel(GL_FLAT);
+    glColorMask(0, 0, 0, 0);
+    
+    // DISPLAY
+    display( );
+    //glLoadIdentity();  // repere camera
+    //tbVisuTransform(); // origine et orientation de la scene
+    
+    
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, shadowMapSize, shadowMapSize);
+    
+    //restore states
+    glCullFace(GL_BACK);
+    glShadeModel(GL_SMOOTH);
+    glColorMask(1, 1, 1, 1);
+    
+    
+    // SECOND shadow map routine
+    glClear(GL_DEPTH_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(cameraProjectionMatrix);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(cameraViewMatrix);
+    
+    glViewport(0, 0, screenWidth, screenHeight);
+    
+    // Light
+    //glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
+    glLightfv(GL_LIGHT1, GL_POSITION, VECTOR4D(lightPosition)); // Position The Light
+    glLightfv(GL_LIGHT1, GL_AMBIENT, white*0.2f);       // Setup The Ambient Light
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, white*0.2f);       // Setup The Diffuse Light
+    glLightfv(GL_LIGHT1, GL_SPECULAR, black);   // Specular
+    //glLightfv(GL_LIGHT1, GL_SHININESS, lightShininess);   // Specular
+    
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHTING);
+    
+    
+    display();
+    
+    // THIRD shadow map routine
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, white);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, white);
+    
+    static MATRIX4X4 biasMatrix(0.5f, 0.0f, 0.0f, 0.0f,
+                                0.0f, 0.5f, 0.0f, 0.0f,
+                                0.0f, 0.0f, 0.5f, 0.0f,
+                                0.5f, 0.5f, 0.5f, 1.0f);
+    
+    MATRIX4X4 textureMatrix=biasMatrix*lightProjectionMatrix*lightViewMatrix;
+    //Set up texture coordinate generation.
+    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_S, GL_EYE_PLANE, textureMatrix.GetRow(0));
+    glEnable(GL_TEXTURE_GEN_S);
+    
+    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_T, GL_EYE_PLANE, textureMatrix.GetRow(1));
+    glEnable(GL_TEXTURE_GEN_T);
+    
+    glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_R, GL_EYE_PLANE, textureMatrix.GetRow(2));
+    glEnable(GL_TEXTURE_GEN_R);
+    
+    glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGenfv(GL_Q, GL_EYE_PLANE, textureMatrix.GetRow(3));
+    glEnable(GL_TEXTURE_GEN_Q);
+    
+    // Bind shadow texture
+    glBindTexture(GL_TEXTURE_2D, texShadow);
+    glEnable(GL_TEXTURE_2D);
+    
+    //Enable shadow comparison
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE);
+    
+    //Shadow comparison should be true (ie not in shadow) if r<=texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL);
+    
+    //Shadow comparison should generate an INTENSITY result
+    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE_ARB, GL_INTENSITY);
+    
+    glAlphaFunc(GL_GEQUAL, 0.99f);
+    glEnable(GL_ALPHA_TEST);
+    
+    display();
+    
+    glDisable(GL_TEXTURE_2D);
+    
+    glDisable(GL_TEXTURE_GEN_S);
+    glDisable(GL_TEXTURE_GEN_T);
+    glDisable(GL_TEXTURE_GEN_R);
+    glDisable(GL_TEXTURE_GEN_Q);
+    
+    glDisable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
+    
+    glFinish();
     glutSwapBuffers();
     glutPostRedisplay();
 }
 // pour changement de taille ou desiconification
+//void reshape(int w, int h)
+//{
+//    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+//    glMatrixMode(GL_PROJECTION);
+//    glLoadIdentity();
+//    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+//    //gluPerspective (50, (float)w/h, 1, 10);
+//    glMatrixMode(GL_MODELVIEW);
+//}
 void reshape(int w, int h)
 {
-    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
-    glMatrixMode(GL_PROJECTION);
+    screenWidth=w, screenHeight=h;
+    
+    //Update the camera's projection matrix
+    glPushMatrix();
     glLoadIdentity();
-    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
-    //gluPerspective (50, (float)w/h, 1, 10);
-    glMatrixMode(GL_MODELVIEW);
+    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
+    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
+    glPopMatrix();
 }

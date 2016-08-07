@@ -1,12 +1,15 @@
-// ARKKA
-
-
+//
+//  main.cpp
+//  in4152
+//
+//  Created by Arkka Dhiratara on 7/7/16.
+//  Copyright © 2016 Dhiratara. All rights reserved.
+//
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
 
-#include "GLee/GLee.h"
 
 
 #ifdef __APPLE__
@@ -19,21 +22,18 @@
 #include <GL/gl.h>
 #endif
 
-
-#include "Maths/Maths.h"
-#include "SOIL.h"
-#include "trackball.h"
-#include "argumentParser.h"
-
+#include "SOIL/SOIL.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include "trackball.h"
+#include "argumentParser.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <vector>
-
-
 
 /**
  * Data Model
@@ -130,28 +130,17 @@ unsigned int screenWidth = 1920;  // screen width
 unsigned int screenHeight = 800;  // screen height
 
 
-// Camera
-VECTOR3D cameraPosition(0.0f, 5.0f,-10.0f);
-VECTOR3D lightPosition(-2.0f, 3.0f,-2.0f);
-float angle = 0;
-
 // Light pos
 //GLfloat lightPosition[] = {5.0, 5.0, 10.0, 0.0};
-//GLfloat lightPosition[]= { 5.0f, 20.0f, 40.0f, 1.0f };
-GLfloat lightDiffuse[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat lightPosition[]= { 8.0f, 20.0f, 20.0f, 1.0f };
+GLfloat lightDiffuse[] = {1.0, 1.0, 0.0, 1.0};
 GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
-GLfloat lightAmbient[] = {0.2, 0.2, 0.2, 0.2};
+GLfloat lightAmbient[] = {0.1, 0.1, 0.1, 1.0};
 GLfloat lightShininess[] = { 50.0 };
 
 GLfloat globalAmbient[] = { 0.2, 0.2, 0.2, 1.0 };
 
-const int shadowMapSize=512;
-
-MATRIX4X4 lightProjectionMatrix, lightViewMatrix;
-MATRIX4X4 cameraProjectionMatrix, cameraViewMatrix;
-
 // Declare your own global variables here:
-
 
 // Generated terrain
 std::vector<struct Mountain> mountains;
@@ -164,6 +153,14 @@ int maxEnemies = 5;
 int curEnemies = maxEnemies;
 bool isBoss = false;
 
+
+float recoilX = 0;
+float recoilY = 0;
+float recoilMoveX = 0;
+float recoilMoveY = 0;
+float recoilAnimation = 0;
+float recoilEasing = 0.25;
+
 // Options
 bool antiAlias = false;
 GLfloat	xrot;				// X Rotation
@@ -174,8 +171,18 @@ GLfloat mountainX = 0;
 
 
 // Mesh
-std::vector<float> MeshVertices;
+std::vector<float> MeshVertices, MeshVerticesDist, MeshVerticesCollapse;
 std::vector<unsigned int> MeshTriangles;
+
+// Mesh Simplification
+std::vector<float> SimplifiedMeshVertices; // old format
+std::vector<unsigned int> SimplifiedMeshTriangles; // old format
+std::vector<glm::vec3> SMeshVertices; // new format using vec3
+std::vector<std::vector<glm::vec3>> SMeshTriangles, SMeshFaces; // new format using vec3
+std::vector<std::vector<glm::vec3>> SMeshVerticesNeighbors;
+std::vector<bool> SMeshVerticesCollapse; // new format using vec3
+std::vector<float> SMeshVerticesDistance; // new format using vec3
+
 
 std::vector<float> bossVertices, pokeVertices;
 std::vector<unsigned int> bossTriangles, pokeTriangles;
@@ -191,17 +198,16 @@ GLdouble worldX, worldY, worldZ; //variables to hold world x,y,z coordinates
 GLdouble worldLimitX, worldLimitY, worldLimitZ;
 
 // Texture
-GLuint texShadow;
-GLuint texSky, texWater, texGrass, texStone;
-GLuint	texWhite, texArmy, texGreen, texAluminium, texBullet, texSkull;
+GLuint texSky, texWater, texGrass, texStone, texTail;
+GLuint	texWhite, texArmy, texArmyArm, texArmyHead, texGreen, texAluminium, texBullet, texSkull;
 
 // Material
 struct Material matArmy {
-    {1.000000, 1.000000, 1.000000}, // Ka
-    {0.640000, 0.640000, 0.640000}, // Kd
-    {0.5, 0.5, 0.5}, // Ks
-    {0.0, 0.0, 0.0, 1.0}, //Ke
-    0.1 // n
+    {0.200000, 0.20000, 0.20000}, // Ka
+    {0.20000, 0.20000, 0.20000}, // Kd
+    {0.8, 0.8, 0.8}, // Ks
+    {0.0, 0.3, 0.0, 1.0}, //Ke
+    0.4 // n
 };
 
 struct Material matStone {
@@ -250,6 +256,13 @@ struct Material matGold {
     {0.628281,	0.555802,	0.366065}, // Ks
     {0.0, 0.0, 0.0, 1.0},
     0.4 // n
+};
+struct Material matBlue {
+    {0.0,	0.0,	0.00}, // Ka
+    {0.1,	0.1,	0.35}, // Kd
+    {0.45,	0.45,	0.55}, // Ks
+    {0.0, 0.0, 0.0, 1.0},
+    0.25 // n
 };
 
 struct Material matGreenBullet {
@@ -602,12 +615,144 @@ void drawCoordSystem(float length=1)
 
 void drawLight() {
     glPushMatrix();
-    //glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
+    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
     glutSolidSphere(1,10,10);
     glPopMatrix();
 }
 
-
+// TODO: recheck again
+bool simplifyMesh() {
+    printf("\n Original Vertices: %lu", MeshVertices.size()/3);
+    printf("\n Original Triangles: %lu \n", MeshTriangles.size()/3);
+    
+    //    for (unsigned int i = 0; i < MeshTriangles.size()/3; i ++) {
+    //        printf("TRIANGLES: %i\n", MeshTriangles[i]);
+    //    }
+    
+    // 1. register to new format
+    for (unsigned int i = 0; i < MeshTriangles.size(); i += 3) {
+        glm::vec3 vertex = glm::vec3(MeshVertices[MeshTriangles[i]],MeshVertices[MeshTriangles[i+1]],MeshVertices[MeshTriangles[i+2]]);
+        
+        // push
+        SMeshVertices.push_back(vertex);
+        
+        
+        std::vector<glm::vec3> smvn;
+        // push empty neighbor placeholder
+        SMeshVerticesNeighbors.push_back(smvn);
+        
+        // push faces
+        SMeshFaces.push_back(smvn);
+        
+        // push default colapse state
+        SMeshVerticesCollapse.push_back(false);
+        
+        // push default dist
+        SMeshVerticesDistance.push_back(1000000);
+    }
+    
+    printf("\n Simplified Vertices-1: %lu \n", SMeshVertices.size());
+    
+    // 2. build triangles
+    for (unsigned int i = 0; i < SMeshVertices.size(); i+= 3) {
+        std::vector<glm::vec3> vertex;
+        
+        // Triangle
+        vertex.push_back(SMeshVertices[i]);
+        vertex.push_back(SMeshVertices[i+1]);
+        vertex.push_back(SMeshVertices[i+2]);
+        
+        SMeshTriangles.push_back(vertex);
+        
+        for(int j=0;j<3;j++) {
+            SMeshFaces[i] = vertex;
+            
+            for(int k=0;k<3;k++) if(j!=k) {
+                long neighborsCount = std::count(SMeshVerticesNeighbors[i].begin(), SMeshVerticesNeighbors[i].end(), vertex[j]);
+                if(neighborsCount > 0) {
+                    //                    printf(" (%f,%f,%f \n) already registered\n", vertex[j].x, vertex[j].y, vertex[j].z);
+                    //
+                    //                    for(int l=0; l<SMeshVerticesNeighbors[i].size(); l++) {
+                    //                        printf("      -->  (%f,%f,%f)\n", SMeshVerticesNeighbors[i][l].x, SMeshVerticesNeighbors[i][l].y, SMeshVerticesNeighbors[i][l].z );
+                    //                    }
+                    
+                } else {
+                    //                    printf(" (%f,%f,%f) == neighbors == (%f,%f,%f) \n", SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z, vertex[j].x, vertex[j].y, vertex[j].z );
+                    SMeshVerticesNeighbors[i].push_back(vertex[j]);
+                }
+            }
+        }
+    }
+    
+    // 3. Determine cost on each vertex
+    
+    int debugTrue = 0;
+    int debugFalse = 0;
+    
+    for (unsigned int i = 0; i < SMeshVertices.size(); i++) {
+        if(SMeshVerticesNeighbors[i].size() == 0) {
+            // no neighbors
+            SMeshVerticesDistance[i] = -0.01f;
+            SMeshVerticesCollapse[i] = true;
+            
+            debugTrue++;
+            
+        } else {
+            SMeshVerticesDistance[i] = 1000000; //arbitrary max length
+            SMeshVerticesCollapse[i] = false;
+            
+            debugFalse++;
+            
+            for(int j=0;j< SMeshVerticesNeighbors[i].size();j++){
+                float dist;
+                
+                glm::vec3 diff = SMeshVerticesNeighbors[i][j] - SMeshVertices[i];
+                float edgelength = sqrtf(dot(diff, diff));
+                float curvature=0;
+                
+                
+                
+                
+                std::vector<glm::vec3> sides;
+                for (unsigned int k = 0; k<SMeshFaces[i].size(); k++) {
+                    if(SMeshFaces[i][k] == SMeshVerticesNeighbors[i][j]){
+                        sides.push_back(SMeshFaces[i][k]);
+                    }
+                }
+                
+                
+                // NEED TO BE RECHECKED.. too many looping.. :(
+                for (unsigned int k = 0; k<SMeshFaces[i].size(); k++) {
+                    float mincurv=1; // curve for face i and closer side to it
+                    for (unsigned int l = 0; l<sides.size(); l++) {
+                        float dotprod = dot(SMeshFaces[i][k] , sides[l]);	  // use dot product of face normals.
+                        mincurv = std::min(mincurv,(1-dotprod)/2.0f);
+                    }
+                    curvature = std::max(curvature, mincurv);
+                }
+                
+                dist = edgelength * curvature;
+                
+                //                printf(" (%f,%f,%f) == %f  == (%f,%f,%f) \n", SMeshVerticesNeighbors[i][j].x, SMeshVerticesNeighbors[i][j].y, SMeshVerticesNeighbors[i][j].z, dist, SMeshVertices[i].x, SMeshVertices[i].y, SMeshVertices[i].z);
+                
+                if(dist<SMeshVerticesDistance[i]) {
+                    SMeshVerticesDistance[i] = dist;
+                    SMeshVerticesCollapse[i] = true;
+                }
+                
+            }
+            
+            
+        }
+        
+    }
+    
+    printf("TRUE: %i, FALSE: %i\n", debugTrue, debugFalse);
+    
+    
+    
+    return true;
+}
 
 void drawMesh(std::vector<float> MeshVertices, std::vector<unsigned int> MeshTriangles)
 {
@@ -669,6 +814,21 @@ void drawMesh(std::vector<float> MeshVertices, std::vector<unsigned int> MeshTri
     glPopMatrix();
 }
 
+void spawnEnemy() {
+    struct Enemy enemy {
+        glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
+        glm::vec3(0,0,0), // move
+        0, // angle
+        0.01, // acceleration
+        (int) randomRange(0, 5), // type
+        false, // is dead
+        5 // hp
+        
+    };
+    
+    enemies.push_back(enemy);
+}
+
 
 void drawSky() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -679,21 +839,11 @@ void drawSky() {
     glBindTexture( GL_TEXTURE_2D, texSky );
     //setMaterial(matChrome);
     
-    glColor3f(1,0,0);
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, -1.0f, -100.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, -1.0f, -100.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 5.0f, -100.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 5.0f, -100.0f);
-    glEnd();
-    
-    
-    glColor3f(1,0,0);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-10.0f, -1.0f, 5.0f);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 10.0f, -1.0f, 5.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 10.0f, 5.0f, 5.0f);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-10.0f, 5.0f, 1.0f);
     glEnd();
     
     
@@ -725,16 +875,19 @@ void drawTerrain() {
     glPopMatrix();
 }
 
-void drawWater() {
+void drawLand() {
     glPushMatrix();
-    //setMaterial(matCopper);
     
-    //glEnable(GL_COLOR);
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, texGrass);
+    setMaterial(matGrass);
+    
+
     //glColor3d(1,0,0);
     
     glBegin(GL_QUADS);
-    glVertex3f(-10.0f, -2.0f, -10.0f);
-    glVertex3f( 10.0f, -2.0f, -10.0f);
+    glVertex3f(-10.0f, -1.0f, -10.0f);
+    glVertex3f( 10.0f, -1.0f, -10.0f);
     glVertex3f( 10.0f, -5.0f, 10.0f);
     glVertex3f(-10.0f, -5.0f, 10.0f);
     glEnd();
@@ -769,6 +922,8 @@ void drawBullets() {
                     
                     if(boss.hp<=0) {
                         boss.hp = 0;
+                        
+                        spawnEnemy();
                         boss.isDead = true;
                     }
                     printf("Boss HP: %d/%d\n",boss.hp, 20);
@@ -814,28 +969,54 @@ void drawBullets() {
             glPushMatrix();
             
             glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texBullet );
             
-            
-            if(bullets[i].type == 0) setMaterial(matGold);
-            else if(bullets[i].type == 1) setMaterial(matRuby);
             
             glTranslated(bullets[i].pos.x, bullets[i].pos.y, 0);
             glRotatef(bullets[i].angle,0,0,1);
             
-            glBegin(GL_QUADS);
-            glNormal3f(0,0,1);
-            glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.1f, 0.05f, 0.0f);
-            glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
-            
-            glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
-            glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.02f, 0.0f);
-            glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.02f, 0.0f);
-            glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
-            
-            glEnd();
+            if(bullets[i].type == 0) {
+                
+                glBindTexture( GL_TEXTURE_2D, texBullet );
+
+                setMaterial(matGold);
+                
+                glBegin(GL_QUADS);
+                glNormal3f(0,0,1);
+                glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.1f, 0.05f, 0.0f);
+                glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
+                
+                glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.02f, 0.0f);
+                glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.02f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
+                
+                glEnd();
+
+            } else if(bullets[i].type == 1) {
+                 setMaterial(matRuby);
+                 glBindTexture( GL_TEXTURE_2D, texStone );
+                
+                glBegin(GL_QUADS);
+                glNormal3f(0,0,1);
+                glTexCoord2f(0.0f, 0.8f); glVertex3f(-0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.6f, 0.8f); glVertex3f( 0.25f, -0.025f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f( 0.25f, 0.025f, 0.0f);
+                glTexCoord2f(0.0f, 0.2f); glVertex3f(-0.1f, 0.05f, 0.0f);
+                
+                glTexCoord2f(0.6f, 0.8f); glVertex3f(0.1f, -0.05f, 0.0f);
+                glTexCoord2f(0.8f, 0.8f); glVertex3f(0.25f, -0.025f, 0.0f);
+                glTexCoord2f(0.8f, 0.2f); glVertex3f(0.25f, 0.025f, 0.0f);
+                glTexCoord2f(0.6f, 0.2f); glVertex3f(0.1f, 0.05f, 0.0f);
+                
+                glEnd();
+                
+                
+                
+
+
+            }
             
             
             
@@ -897,7 +1078,7 @@ void drawEnemies()
             // Draw
             glPushMatrix();
             glEnable( GL_TEXTURE_2D );
-            glBindTexture( GL_TEXTURE_2D, texWhite );
+            glBindTexture( GL_TEXTURE_2D, texStone );
             setMaterial(matChrome);
             
             glTranslated(enemies[i].pos.x, enemies[i].pos.y, 0);
@@ -909,7 +1090,56 @@ void drawEnemies()
             if(enemies[i].angle < -45 && enemies[i].angle >= -135) glRotatef((enemies[i].angle + 45) * -2, 1, 0, 0);
             else if(enemies[i].angle < -135) glRotatef(-180, 1, 0, 0);
             
-            glutSolidTeapot(0.3);
+            //glutSolidTeapot(0.3);
+      
+            
+            float x, y, z, dTheta=180/5, dLon=360/5, degToRad=3.14/180, r = 0.25;
+            
+            
+            for(float lat =0 ; lat <=180 ; lat+=dTheta)
+            {
+                glBegin( GL_QUAD_STRIP ) ;
+                for(float lon = 0 ; lon <=360; lon+=dLon)
+                {
+                    
+                    x = r*cosf(lat * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf(lat * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf(lon * degToRad) ;
+                    
+                    glNormal3f( x, y, z) ;
+                    glTexCoord2f(x, 1.0f);
+                    glVertex3f( x, y, z ) ;
+                    
+                    x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf( lon * degToRad ) ;
+                    
+                    glNormal3f( x, y, z ) ;
+                    glTexCoord2f(x, z);
+                    glVertex3f( x, y, z ) ;
+                    
+                    
+                }
+                glEnd() ;
+                
+            }
+            
+            glPushMatrix();
+            
+            setMaterial(matRuby);
+            glBindTexture(GL_TEXTURE_2D, texWhite);
+            
+            glBegin(GL_QUADS);
+            glNormal3f(0,0,1);
+            glVertex3f(-0.1f, -0.1f, 0.20f);
+            glVertex3f( 0.1f, -0.1f, 0.20f);
+            glVertex3f( 0.1f, 0.1f, -0.20f);
+            glVertex3f(-0.1f, 0.1f, -0.20f);
+            
+            
+            glEnd();
+            
+            glPopMatrix();
             
             glPopMatrix();
         }
@@ -920,6 +1150,48 @@ void drawEnemies()
     
 }
 
+
+
+void drawCube(){
+    glBegin(GL_QUADS);
+    // Front Face
+    
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Top Right Of The Texture and Quad
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Top Left Of The Texture and Quad
+    
+    // Back Face
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Bottom Left Of The Texture and Quad
+    // Top Face
+     glNormal3f(-0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  -0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+    // Bottom Face
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+    // Right face
+     glNormal3f(0.5f, -0.5f,  -0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.5f, -0.5f, -0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  -0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.5f,  0.5f, -0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(0.5f, 0.5f,  0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f( 0.5f,  0.5f,  0.5f);  // Top Left Of The Texture and Quad
+     glNormal3f(0.5f, -0.5f,  0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f( 0.5f, -0.5f,  0.5f);  // Bottom Left Of The Texture and Quad
+    // Left Face
+     glNormal3f(-0.5f, -0.5f,  -0.5f); glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.5f, -0.5f, -0.5f);  // Bottom Left Of The Texture and Quad
+     glNormal3f(-0.5f, -0.5f,  0.5f); glTexCoord2f(1.0f, 0.0f); glVertex3f(-0.5f, -0.5f,  0.5f);  // Bottom Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  0.5f); glTexCoord2f(1.0f, 1.0f); glVertex3f(-0.5f,  0.5f,  0.5f);  // Top Right Of The Texture and Quad
+     glNormal3f(-0.5f, 0.5f,  -0.5f); glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.5f,  0.5f, -0.5f);  // Top Left Of The Texture and Quad
+     glEnd();
+
+}
+
+
+
 void drawPlayer()
 {
     if(!player.isDead) {
@@ -929,12 +1201,8 @@ void drawPlayer()
         player.pos = moveVec[0];
         player.move = moveVec[1];
         
-        // TEXTURE AND MATERIAL
+
         glPushMatrix();
-        //glEnable( GL_TEXTURE_2D );
-        //glBindTexture( GL_TEXTURE_2D, texArmy );
-        //setMaterial(matChrome);
-        
         // Apply movement
         glTranslated(player.pos.x, player.pos.y, 0);
         
@@ -946,18 +1214,124 @@ void drawPlayer()
         if(player.angle < -45 && player.angle >= -135) glRotatef((player.angle + 45) * -2, 1, 0, 0);
         else if(player.angle < -135) glRotatef(-180, 1, 0, 0);
         
-        glutSolidTeapot(0.4);
+        
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
+        
+        
+        
+        // Head
+        glBindTexture(GL_TEXTURE_2D, texGreen);
+        GLUquadricObj *quadricObj = gluNewQuadric();
+        gluQuadricDrawStyle(quadricObj, GLU_FILL);
+        gluSphere(quadricObj, 0.4, 10, 10);
+        gluQuadricTexture(quadricObj, GL_TRUE);
+        
+        setMaterial(matGold);
+        glPushMatrix();
+        
+            glTranslatef(0, 0.5, 0);
+            float x, y, z, dTheta=180/10, dLon=360/10, degToRad=3.14/180, r = 0.5;
+        
+            
+            for(float lat =0 ; lat <=180 ; lat+=dTheta)
+            {
+                glBegin( GL_QUAD_STRIP ) ;
+                for(float lon = 0 ; lon <=360; lon+=dLon)
+                {
+                    
+                    x = r*cosf(lat * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf(lat * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf(lon * degToRad) ;
+                    
+                    glNormal3f( x, y, z) ;
+                    glTexCoord2f(x, 1.0f);
+                    glVertex3f( x, y, z ) ;
+                    
+                    x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    y = r*sinf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
+                    z = r*cosf( lon * degToRad ) ;
+                    
+                    glNormal3f( x, y, z ) ;
+                    glTexCoord2f(x, z);
+                    glVertex3f( x, y, z ) ;
+                    
+                    
+                }
+                glEnd() ;
+                
+            }
+        
+        glBindTexture(GL_TEXTURE_2D, texAluminium);
+        setMaterial(matChrome);
+        glTranslated(-0.20, 0.25, 0);
+        glScaled(0.7, 0.6, 1);
+        drawCube();
+        
+        glPushMatrix();
+        glBindTexture(GL_TEXTURE_2D, texArmyHead);
+        setMaterial(matChrome);
+        glTranslated(0.75, 0.0, 0.0);
+        glScaled(0.5, 0.2, 0.6);
+        drawCube();
+        
+
+        
+        glPopMatrix();
+        
+        glPopMatrix();
+        
+        
+        
+        
+        glBindTexture(GL_TEXTURE_2D, texArmy);
+        setMaterial(matArmy);
+        
+        // Body
+        drawCube();
+        
+        
+        
+        
+        glBindTexture(GL_TEXTURE_2D, texArmyArm);
+        setMaterial(matArmy);
+        
+        glPushMatrix();
+        
+        if(recoilAnimation) {
+            glTranslated(recoilX, recoilY, 0);
+            glRotated(-45*recoilX, 0, 0, 1);
+        }
+
+        
+        glPushMatrix();
+        glScaled(1.5, 0.4, 0.25);
+        glTranslatef(0.25, 0, 2);
+        drawCube();
+        glPopMatrix();
+        
+        glPushMatrix();
+        glScaled(1.5, 0.4, 0.25);
+        glTranslatef(0.25, 0, -2);
+        drawCube();
+        glPopMatrix();
+        
+        glPopMatrix();
+        
+        
         
         glPopMatrix();
     }
     
 }
 
-
-
 void drawBossTail(float r, float divisions) {
     float x, y, z, dTheta=180/divisions, dLon=360/divisions, degToRad=3.14/180 ;
+    
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texTail);
+    //setMaterial(matChrome);
     
     for(float lat =0 ; lat <=180 ; lat+=dTheta)
     {
@@ -970,6 +1344,7 @@ void drawBossTail(float r, float divisions) {
             z = r*cosf(lon * degToRad) ;
             
             glNormal3f( x, y, z) ;
+            glTexCoord2f(x, 1.0f);
             glVertex3f( x, y, z ) ;
             
             x = r*cosf((lat + dTheta) * degToRad) * sinf(lon * degToRad) ;
@@ -977,6 +1352,7 @@ void drawBossTail(float r, float divisions) {
             z = r*cosf( lon * degToRad ) ;
             
             glNormal3f( x, y, z ) ;
+            glTexCoord2f(x, 0.0f);
             glVertex3f( x, y, z ) ;
         }
         glEnd() ;
@@ -1065,152 +1441,65 @@ void drawBoss()
 }
 
 
-void drawCube(){
-    glPushMatrix();
-    
-    //glRotated(xrot, 1, 0, 0);
-    //glRotated(yrot, 0, 1, 0);
-    //xrot+=1;
-    //yrot+=1;
-    glTranslatef(0,0,-2);
-    
-    glBindTexture(GL_TEXTURE_2D, texWhite);
-    setMaterial(matChrome);
-    
-    glBegin(GL_QUADS);
-    // Front Face
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 5.0f, -0.5f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 5.0f,  0.5f,  1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f,  0.5f,  1.0f);  // Top Left Of The Texture and Quad
-    
-    // Back Face
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
-    // Top Face
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    // Bottom Face
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    // Right face
-    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Top Left Of The Texture and Quad
-    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Bottom Left Of The Texture and Quad
-    // Left Face
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom Left Of The Texture and Quad
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Bottom Right Of The Texture and Quad
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Top Right Of The Texture and Quad
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Top Left Of The Texture and Quad
-    glEnd();
-    
-    glPopMatrix();
-}
 
 
-void spawnEnemy() {
-    struct Enemy enemy {
-        glm::vec3(randomRange(0, 15),randomRange(-15, 15),0), // pos
-        glm::vec3(0,0,0), // move
-        0, // angle
-        0.01, // acceleration
-        (int) randomRange(0, 5), // type
-        false, // is dead
-        5 // hp
-        
-    };
-    
-    enemies.push_back(enemy);
-}
+
 
 
 
 void display( )
 {
     
-    // Enemy and Boss Spawning
-    //    curEnemies = 0;
-    //    for(int i=0;i<enemies.size();i++){
-    //        if(enemies[i].isDead==false) curEnemies++;
-    //    }
-    //
-    //    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
-    //        spawnBoss();
-    //    }
-    //
-    //    if(enemies.size() < maxEnemies && boss.isDead) {
-    //        spawnEnemy();
-    //    }
-    //
+    // Game Logic
+    
+    curEnemies = 0;
+    for(int i=0;i<enemies.size();i++){
+        if(enemies[i].isDead==false) curEnemies++;
+    }
+    
+    if(curEnemies == 0 && enemies.size() == maxEnemies && boss.isDead) {
+        spawnBoss();
+    }
+    
+    if(enemies.size() < maxEnemies && boss.isDead) {
+        spawnEnemy();
+    }
+    
+    
+    
+    // End of Game logic
+    
+    // Light
+    glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);		// Setup The Ambient Light
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);		// Setup The Diffuse Light
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);   // Specular
+    glLightfv(GL_LIGHT0, GL_SHININESS, lightShininess);   // Specular
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);	// Position The Light
     
     //drawCoordSystem();
     
     
     // Environments
     drawSky();
-    //drawMountains();
+    drawMountains();
     //drawTerrain();
-    //drawWater();
+    drawLand();
     //drawCube();
     
     
     // Units
     
     
-    //drawPlayer();
-    //drawEnemies();
-    //drawBoss();
-    //drawBullets();
-    
-    
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glPushMatrix();
-    
-    glTranslatef(0.45f, 1.0f, 0.45f);
-    
-    glutSolidSphere(0.2, 24, 24);
-    
-    glTranslatef(-0.9f, 0.0f, 0.0f);
-    glutSolidSphere(0.2, 24, 24);
-    
-    glTranslatef(0.0f, 0.0f,-0.9f);
-    glutSolidSphere(0.2, 24, 24);
-    
     drawPlayer();
-    
-    glTranslatef(0.9f, 0.0f, 5.0f);
-    //glutSolidSphere(0.2, 24, 24);
-    glutSolidCube (5);
-    glPopMatrix();
-    
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glPushMatrix();
-    
-    glTranslatef(0.0f, 0.5f, 0.0f);
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-    //glutSolidTeapot(0.2);
-    
-    glPopMatrix();
-    
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glPushMatrix();
-    
-    
-    glScalef(1.0f, 0.05f, 1.0f);
-    glutSolidCube(3.0f);
-    
-    glPopMatrix();
+    drawEnemies();
+    drawBoss();
+    drawBullets();
     
     
     
     
+    //glFlush ();
     
     
     
@@ -1222,7 +1511,32 @@ void display( )
  */
 void animate( )
 {
-    //tri_x = tri_x + inc;
+    
+    
+    if(recoilAnimation == 1) {
+        
+        if(recoilMoveX < recoilX) {
+            float distanceX = recoilMoveX - recoilX;
+            recoilX += distanceX * recoilEasing;
+        } else {
+            recoilMoveX = 0;
+        }
+        
+        
+        if(recoilMoveX > recoilX) {
+            float distanceX = recoilMoveX - recoilX;
+            recoilX += distanceX * recoilEasing;
+        } else {
+            recoilMoveX = 0;
+        }
+        
+    }
+    
+
+
+    
+
+
 }
 
 
@@ -1235,6 +1549,9 @@ void mouseClick( int button, int state, int x, int y )
     if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN )
     {
         fireBullet(player.pos, glm::vec3(worldX,worldY,0),player.angle);
+        recoilMoveX = -1;
+        recoilAnimation = 1;
+        
         
         
     }
@@ -1289,6 +1606,30 @@ void keyboard(unsigned char key, int x, int y)
             player.move.y += player.acceleration;
             break;
             
+        case 'i':
+            //turn AA on
+            lightPosition[0] += 1.00;
+            break;
+        case 'I':
+            //turn AA off
+            lightPosition[0] -= 1.00;
+            break;
+        case 'o':
+            //turn AA on
+            lightPosition[1] += 1.00;
+            break;
+        case 'O':
+            //turn AA off
+            lightPosition[1] -= 1.00;
+            break;
+        case 'p':
+            //turn AA on
+            lightPosition[2] += 1.00;
+            break;
+        case 'P':
+            //turn AA off
+            lightPosition[2] -= 1.00;
+            break;
         case 'r':
             //player respawn
             player.isDead = false;
@@ -1297,27 +1638,10 @@ void keyboard(unsigned char key, int x, int y)
         case 'b':
             spawnBoss();
             break;
-        case 'i':
-            lightPosition.x += 1.00;
-            break;
-        case 'I':
-            lightPosition.x -= 1.00;
-            break;
-        case 'o':
-            lightPosition.y += 1.00;
-            break;
-        case 'O':
-            lightPosition.y -= 1.00;
-            break;
-        case 'p':
-            lightPosition.z += 1.00;
-            break;
-        case 'P':
-            lightPosition.z -= 1.00;
-            break;
             
     }
     
+    printf("light pos %f,%f,%f\n", lightPosition[0], lightPosition[1], lightPosition[2]);
 }
 
 void keyboardSpecial(int key, int x, int y) {
@@ -1397,99 +1721,49 @@ void keyboardSpecialUp(int key, int x, int y) {
 void displayInternal(void);
 void reshape(int w, int h);
 bool loadMesh(const char * filename);
+bool simplifyMesh();
+
 void init()
 {
-    if(!GLEE_ARB_depth_texture || !GLEE_ARB_shadow)
-    {
-        printf("I require ARB_depth_texture and ARB_shadow extensionsn\n");
-    }
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    
-    
-    glShadeModel(GL_SMOOTH);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    
-    // Depth states
-    glClearDepth(1.0f);
-    
-    glDepthFunc(GL_LEQUAL);
-    glEnable( GL_DEPTH_TEST );
-    
-    
-    glEnable(GL_CULL_FACE);
-    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    
-    
-    glEnable(GL_NORMALIZE);
-    
-    // Shadow
-    glGenTextures(1, &texShadow);
-    glBindTexture(GL_TEXTURE_2D, texShadow);
-    glTexImage2D(   GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0,
-                 GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-    glEnable(GL_COLOR_MATERIAL);
-    
-    glMaterialfv(GL_FRONT, GL_SPECULAR, lightSpecular);
-    glMaterialf(GL_FRONT, GL_SHININESS, 16.0f);
-    
-    // calculate and save matrices
-    glPushMatrix();
-    
-    glLoadIdentity();
-    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
-    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
-    
-    glLoadIdentity();
-    gluLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
-              0.0f, 0.0f, 0.0f,
-              0.0f, 1.0f, 0.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, cameraViewMatrix);
-    
-    glLoadIdentity();
-    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
-    gluPerspective(45.0f, 1.0f, 2.0f, 8.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, lightProjectionMatrix);
-    
-    glLoadIdentity();
-    gluLookAt(	lightPosition.x, lightPosition.y, lightPosition.z,
-              0.0f, 0.0f, 0.0f,
-              0.0f, 1.0f, 0.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, lightViewMatrix);
-    
-    glPopMatrix();
-    
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
     
     // Texture
     texWhite = loadTexture("textures/white.bmp");
-    texGreen = loadTexture("textures/green.bmp");
+    texGreen = loadTexture("textures/green.jpg");
     
     texSky = loadTexture("textures/sky.jpg");
     texArmy = loadTexture("textures/army.bmp");
+    texArmyArm = loadTexture("textures/army-arm.jpg");
+    texArmyHead = loadTexture("textures/army-head.jpg");
     texStone = loadTexture("textures/stone.bmp");
     texGrass = loadTexture("textures/grass.bmp");
     texAluminium = loadTexture("textures/aluminium.bmp");
     texBullet = loadTexture("textures/bullet.png");
     texSkull = loadTexture("textures/skull.jpg");
+    texTail = loadTexture("textures/tail.jpg");
+    
+    glEnable(GL_NORMALIZE);
+    
+    glShadeModel(GL_SMOOTH);
+    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    glClearDepth(1.0f);
+    glEnable( GL_DEPTH_TEST );
+    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     
     
-    // MESHES
+    
+    //    // MESHES
     loadMesh("meshes/boss.obj");
+    simplifyMesh();
     bossVertices =  MeshVertices;
     bossTriangles = MeshTriangles;
     
-    loadMesh("meshes/poke.obj");
-    pokeVertices =  MeshVertices;
-    pokeTriangles = MeshTriangles;
+    //loadMesh("meshes/poke.obj");
+    //pokeVertices =  MeshVertices;
+    //pokeTriangles = MeshTriangles;
     
     
     // Initialize scene
@@ -1703,14 +1977,21 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
     
     // couches du framebuffer utilisees par l'application
-    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_DEPTH );
     
     // position et taille de la fenetre
-    glutInitWindowPosition(200, 200);
+    glutInitWindowPosition(200, 100);
     glutInitWindowSize(screenWidth,screenHeight);
     glutCreateWindow(argv[0]);
     
     init( );
+    
+    // Initialize viewpoint
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glTranslatef(0,0,winZ);
+    tbInitTransform();
+    tbHelp();
     
     // cablage des callback
     glutReshapeFunc(reshape);
@@ -1738,133 +2019,22 @@ void displayInternal(void)
     // Effacer tout
     glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT); // la couleur et le z
     
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(lightProjectionMatrix);
+    glLoadIdentity();  // repere camera
     
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(lightViewMatrix);
+    tbVisuTransform(); // origine et orientation de la scene
     
-    //Use viewport the same size as the shadow map
-    glViewport(0, 0, shadowMapSize, shadowMapSize);
+    display( );    
     
-    //Draw back faces into the shadow map
-    glCullFace(GL_FRONT);
-    
-    glShadeModel(GL_FLAT);
-    glColorMask(0, 0, 0, 0);
-    
-    // DISPLAY
-    display( );
-    //glLoadIdentity();  // repere camera
-    //tbVisuTransform(); // origine et orientation de la scene
-    
-    
-    glBindTexture(GL_TEXTURE_2D, texShadow);
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, shadowMapSize, shadowMapSize);
-    
-    //restore states
-    glCullFace(GL_BACK);
-    glShadeModel(GL_SMOOTH);
-    glColorMask(1, 1, 1, 1);
-    
-    
-    // SECOND shadow map routine
-    glClear(GL_DEPTH_BUFFER_BIT);
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(cameraProjectionMatrix);
-    
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(cameraViewMatrix);
-    
-    glViewport(0, 0, screenWidth, screenHeight);
-    
-    // Light
-    //glLightModelfv( GL_LIGHT_MODEL_AMBIENT, globalAmbient );
-    glLightfv(GL_LIGHT1, GL_POSITION, VECTOR4D(lightPosition));	// Position The Light
-    glLightfv(GL_LIGHT1, GL_AMBIENT, white*0.2f);		// Setup The Ambient Light
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, white*0.2f);		// Setup The Diffuse Light
-    glLightfv(GL_LIGHT1, GL_SPECULAR, black);   // Specular
-    //glLightfv(GL_LIGHT1, GL_SHININESS, lightShininess);   // Specular
-    
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHTING);
-    
-    
-    display();
-    
-    // THIRD shadow map routine
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, white);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, white);
-    
-    static MATRIX4X4 biasMatrix(0.5f, 0.0f, 0.0f, 0.0f,
-                                0.0f, 0.5f, 0.0f, 0.0f,
-                                0.0f, 0.0f, 0.5f, 0.0f,
-                                0.5f, 0.5f, 0.5f, 1.0f);
-    
-    MATRIX4X4 textureMatrix=biasMatrix*lightProjectionMatrix*lightViewMatrix;
-    //Set up texture coordinate generation.
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-    glTexGenfv(GL_S, GL_EYE_PLANE, textureMatrix.GetRow(0));
-    glEnable(GL_TEXTURE_GEN_S);
-    
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-    glTexGenfv(GL_T, GL_EYE_PLANE, textureMatrix.GetRow(1));
-    glEnable(GL_TEXTURE_GEN_T);
-    
-    glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-    glTexGenfv(GL_R, GL_EYE_PLANE, textureMatrix.GetRow(2));
-    glEnable(GL_TEXTURE_GEN_R);
-    
-    glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-    glTexGenfv(GL_Q, GL_EYE_PLANE, textureMatrix.GetRow(3));
-    glEnable(GL_TEXTURE_GEN_Q);
-    
-    // Bind shadow texture
-    glBindTexture(GL_TEXTURE_2D, texShadow);
-    glEnable(GL_TEXTURE_2D);
-    
-    //Enable shadow comparison
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE);
-    
-    //Shadow comparison should be true (ie not in shadow) if r<=texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL);
-    
-    //Shadow comparison should generate an INTENSITY result
-    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE_ARB, GL_INTENSITY);
-    
-    glAlphaFunc(GL_GEQUAL, 0.99f);
-    glEnable(GL_ALPHA_TEST);
-    
-    display();
-    
-    glDisable(GL_TEXTURE_2D);
-    
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
-    glDisable(GL_TEXTURE_GEN_R);
-    glDisable(GL_TEXTURE_GEN_Q);
-    
-    glDisable(GL_LIGHTING);
-    glDisable(GL_ALPHA_TEST);
-    
-    glFinish();
     glutSwapBuffers();
     glutPostRedisplay();
 }
 // pour changement de taille ou desiconification
 void reshape(int w, int h)
 {
-    screenWidth=w, screenHeight=h;
-    
-    //Update the camera's projection matrix
-    glPushMatrix();
+    glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
+    glOrtho (-worldLimitX, worldLimitX, -worldLimitY, worldLimitY, -1000.0, 1000.0);
     //gluPerspective (50, (float)w/h, 1, 10);
-    //gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    gluPerspective(45.0f, (float)screenWidth/screenHeight, 1.0f, 100.0f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, cameraProjectionMatrix);
-    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }
-

@@ -10,6 +10,8 @@
 #include <windows.h>
 #endif
 
+
+
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <OpenGL/gl.h>
@@ -20,8 +22,9 @@
 #include <GL/gl.h>
 #endif
 
-#include "SOIL.h"
+#include "SOIL/SOIL.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -31,7 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
-
 
 /**
  * Data Model
@@ -1744,11 +1746,12 @@ void init()
     glEnable(GL_NORMALIZE);
     
     glShadeModel(GL_SMOOTH);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
     glClearDepth(1.0f);
     glEnable( GL_DEPTH_TEST );
-    //glDepthFunc(GL_LEQUAL);
-    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     
     
     
